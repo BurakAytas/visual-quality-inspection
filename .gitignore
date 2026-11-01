@@ -1,0 +1,32 @@
+# Datasets and model weights are never committed (see DATA.md).
+data/
+datasets/
+*.ckpt
+*.pt
+*.pth
+*.onnx
+*.bin
+*.xml
+weights/
+lightning_logs/
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+build/
+dist/
+.pytest_cache/
+.ruff_cache/
+
+# Editors and backups
+.idea/
+.vscode/
+*.bak
+*.swp
+.DS_Store
+
+# Notebook checkpoints and local secrets
+.ipynb_checkpoints/
+.env
