@@ -4,8 +4,10 @@ Needs the ``[train]`` extra (anomalib, torch). Kept apart from the rest of the
 package so the API and CI do not import torch.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 import anomalib.models
 import numpy as np
@@ -17,6 +19,8 @@ from anomalib.metrics import AUPRO
 from anomalib.models.components import AnomalibModule
 from anomalib.post_processing import PostProcessor
 from torch.utils.data import DataLoader
+from torchvision import tv_tensors
+from torchvision.transforms.v2 import Transform
 
 from vqi.config import Config
 
@@ -33,15 +37,39 @@ class Predictions:
     gt_masks: torch.Tensor | None  # (N, H, W) bool at model resolution, None if no defects
 
 
-def build_datamodule(config: Config) -> AnomalibDataModule:
-    """Data module whose validation split holds good images only."""
+class PerturbImage(Transform):
+    """Apply a numpy perturbation (``vqi.perturb``) to test images; masks pass unchanged."""
+
+    def __init__(self, perturbation: Callable[[np.ndarray], np.ndarray]) -> None:
+        """Wrap a function that maps an (H, W, C) float image in [0, 1] to the same shape."""
+        super().__init__()
+        self.perturbation = perturbation
+
+    def transform(self, inpt: Any, params: dict[str, Any]) -> Any:  # noqa: ANN401
+        """Called by torchvision for every input; only images are changed."""
+        if not isinstance(inpt, tv_tensors.Image):
+            return inpt
+        array = inpt.permute(1, 2, 0).numpy()
+        result = torch.from_numpy(np.ascontiguousarray(self.perturbation(array)))
+        return tv_tensors.wrap(result.permute(2, 0, 1).to(inpt.dtype), like=inpt)
+
+
+def build_datamodule(
+    config: Config, test_augmentations: Transform | None = None
+) -> AnomalibDataModule:
+    """Data module whose validation split holds good images only.
+
+    ``test_augmentations`` is applied to test images at full resolution, before the
+    model's resize (used for robustness tests).
+    """
     dataset = config.dataset
     common = {
         "root": dataset.root,
         "category": dataset.category,
         "train_batch_size": config.model.batch_size,
-        "eval_batch_size": config.model.batch_size,
+        "eval_batch_size": config.model.eval_batch_size,
         "num_workers": config.model.num_workers,
+        "test_augmentations": test_augmentations,
         "seed": config.seed,
     }
     if dataset.name == "mvtec_ad2":
@@ -64,14 +92,30 @@ def build_model(config: Config) -> AnomalibModule:
     )
 
 
-def build_engine(run_dir: Path) -> Engine:
-    """Lightning engine on one device; checkpoints go to ``run_dir`` (git-ignored)."""
-    return Engine(default_root_dir=run_dir, accelerator="auto", devices=1, logger=False)
+def build_engine(config: Config, run_dir: Path) -> Engine:
+    """Lightning engine on one device; checkpoints go to ``run_dir`` (git-ignored).
+
+    ``model.trainer`` from the config (e.g. ``max_epochs``) is passed to Lightning.
+    """
+    return Engine(
+        default_root_dir=run_dir,
+        accelerator="auto",
+        devices=1,
+        logger=False,
+        **config.model.trainer,
+    )
 
 
-def predict(engine: Engine, model: AnomalibModule, loader: DataLoader) -> Predictions:
-    """Run the model on a loader and stack the outputs of all batches."""
-    batches = engine.predict(model=model, dataloaders=loader, return_predictions=True)
+def predict(
+    engine: Engine,
+    model: AnomalibModule,
+    loader: DataLoader | None = None,
+    datamodule: AnomalibDataModule | None = None,
+) -> Predictions:
+    """Run the model on a loader (or a data module's test split) and stack all batches."""
+    batches = engine.predict(
+        model=model, dataloaders=loader, datamodule=datamodule, return_predictions=True
+    )
     paths, mask_paths, labels, scores, maps, masks = [], [], [], [], [], []
     for batch in batches:
         n = len(batch.image_path)

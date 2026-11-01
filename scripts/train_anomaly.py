@@ -2,13 +2,15 @@
 
 Writes, under ``results/<model>/<category>/``:
   scores.csv          raw score of every validation and test image
+  scores_<cond>.csv   raw test scores under each perturbation (brightness, blur, noise)
   pixel_metrics.json  pixel AU-PRO on the test set
   run_info.json       versions, hardware, timings, settings
   overlays/           failure gallery: true positives, false negatives, false positives
 and adds the threshold to ``results/thresholds.json``.
 
 Example:
-    python scripts/train_anomaly.py --config configs/fabric.yaml
+    python scripts/train_anomaly.py \
+        --config configs/fabric.yaml --model configs/models/patchcore.yaml
 """
 
 import argparse
@@ -24,6 +26,7 @@ import torch
 from lightning.pytorch import seed_everything
 
 from vqi.anomaly import (
+    PerturbImage,
     Predictions,
     build_datamodule,
     build_engine,
@@ -33,6 +36,7 @@ from vqi.anomaly import (
 )
 from vqi.config import Config, load_config
 from vqi.overlay import save_overlay
+from vqi.perturb import perturbations
 from vqi.threshold import save_threshold, threshold_record
 
 
@@ -113,7 +117,7 @@ def run(config: Config) -> None:
 
     datamodule = build_datamodule(config)
     model = build_model(config)
-    engine = build_engine(Path("runs") / key)
+    engine = build_engine(config, Path("runs") / key)
 
     start = time.perf_counter()
     engine.fit(model=model, datamodule=datamodule)
@@ -129,6 +133,12 @@ def run(config: Config) -> None:
     record = threshold_record(val.scores, config.threshold.target_false_alarm_rate)
     save_threshold(config.results_dir / "thresholds.json", key, record)
     write_scores(out_dir / "scores.csv", category, {"validation": val, "test": test})
+
+    # Robustness: same model and threshold, test images perturbed before resizing.
+    for name, perturbation in perturbations(config.robustness, config.seed).items():
+        perturbed = build_datamodule(config, test_augmentations=PerturbImage(perturbation))
+        result = predict(engine, model, datamodule=perturbed)
+        write_scores(out_dir / f"scores_{name}.csv", category, {"test": result})
 
     pixel = {f"pixel_aupro_{limit}": pixel_aupro(test, limit) for limit in (0.3, 0.05)}
     (out_dir / "pixel_metrics.json").write_text(json.dumps(pixel, indent=2) + "\n")
@@ -155,6 +165,7 @@ def run(config: Config) -> None:
         "n_test_images": len(test.scores),
         "image_size": config.model.image_size,
         "model_params": config.model.params,
+        "trainer_args": config.model.trainer,
         "seed": config.seed,
         "overlay_scale": {"vmin": vmin, "vmax": record["threshold"]},
     }
@@ -166,8 +177,10 @@ def run(config: Config) -> None:
 def main() -> None:
     """Parse arguments and run."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--config", required=True, type=Path)
-    run(load_config(parser.parse_args().config))
+    parser.add_argument("--config", required=True, type=Path, help="category config")
+    parser.add_argument("--model", required=True, type=Path, help="configs/models/<model>.yaml")
+    args = parser.parse_args()
+    run(load_config(args.config, args.model))
 
 
 if __name__ == "__main__":
