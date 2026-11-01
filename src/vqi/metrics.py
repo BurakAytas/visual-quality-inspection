@@ -6,7 +6,7 @@ Labels: 0 = good part, 1 = defective part. A part is rejected (NOK) if ``score >
 from collections.abc import Callable
 
 import numpy as np
-from sklearn.metrics import confusion_matrix, roc_auc_score
+from sklearn.metrics import roc_auc_score
 
 from vqi.threshold import threshold_for_false_alarm_rate
 
@@ -15,8 +15,12 @@ MetricFn = Callable[[np.ndarray, np.ndarray], float]
 
 def operating_point(scores: np.ndarray, labels: np.ndarray, threshold: float) -> dict[str, float]:
     """Counts and rates at one fixed threshold."""
-    predicted = (scores > threshold).astype(int)
-    tn, fp, fn, tp = confusion_matrix(labels, predicted, labels=[0, 1]).ravel()
+    rejected = scores > threshold
+    defective = labels == 1
+    tp = int(np.sum(rejected & defective))
+    fp = int(np.sum(rejected & ~defective))
+    fn = int(np.sum(~rejected & defective))
+    tn = int(np.sum(~rejected & ~defective))
     precision = tp / (tp + fp) if tp + fp else 0.0
     recall = tp / (tp + fn) if tp + fn else 0.0
     f1 = 2 * precision * recall / (precision + recall) if precision + recall else 0.0
@@ -83,10 +87,12 @@ def summarize(
     bootstrap_samples: int,
     seed: int,
     groups: np.ndarray | None = None,
+    names: tuple[str, ...] | None = None,
 ) -> dict:
-    """All image-level test metrics: value and 95% CI for each, plus raw counts.
+    """Image-level test metrics: value and 95% CI for each, plus raw counts.
 
     ``groups`` (optional) gives the physical part of each image; see ``bootstrap_ci``.
+    ``names`` limits which metrics get a value and CI (all by default).
     """
     scores = np.asarray(scores, dtype=float)
     labels = np.asarray(labels, dtype=int)
@@ -117,6 +123,7 @@ def summarize(
             "ci95": bootstrap_ci(scores, labels, fn, bootstrap_samples, seed, groups),
         }
         for name, fn in metrics.items()
+        if names is None or name in names
     }
     point = operating_point(scores, labels, threshold)
     summary["counts"] = {k: point[k] for k in ("tp", "fp", "fn", "tn")}

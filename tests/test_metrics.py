@@ -82,3 +82,8 @@ def test_summary_counts_parts_and_rejects_mixed_groups() -> None:
     assert summary["n_test_parts"] == 4
     with pytest.raises(ValueError, match="mixes"):
         summarize(SCORES, LABELS, 0.5, 0.01, 50, seed=0, groups=np.zeros(8))
+
+
+def test_summary_can_limit_metrics() -> None:
+    summary = summarize(SCORES, LABELS, 0.5, 0.01, 20, seed=0, names=("recall",))
+    assert "recall" in summary and "image_auroc" not in summary
