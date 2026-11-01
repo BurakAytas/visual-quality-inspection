@@ -15,4 +15,4 @@ model:
     # Compute budget for a free Colab GPU, far below the paper's 70k steps.
     # Validation runs at the end of every epoch; EfficientAD needs it to set its map
     # normalisation from good validation images, so an epoch count is used, not steps.
-    max_epochs: 20
+    max_epochs: 10

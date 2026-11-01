@@ -266,7 +266,7 @@ EfficientAD must train with batch size 1 but can score in batches.
 
 ### D32. EfficientAD settings and their limits
 `EfficientAd(model_size="small")`, train batch size 1 (anomalib raises an error
-otherwise), 20 epochs. The paper trains for 70,000 steps; 20 epochs is about 4,000 to
+otherwise), 20 epochs, later cut to 10 (D38). The paper trains for 70,000 steps; 20 epochs is about 4,000 to
 8,000 steps here, a budget for a free Colab GPU, so the result is "EfficientAD at this
 budget", not the best EfficientAD can do. Epochs are used instead of steps because
 EfficientAD sets its anomaly-map normalisation (90% and 99.5% quantiles) in
@@ -318,3 +318,14 @@ finished model and category is kept. On a rerun, a model and category is skipped
 `run_info.json` (written last by `train_anomaly.py`) is at least as new as its
 `scores_noise.csv`; a run cut off half-way is redone. Checked by running the simulated
 notebook twice: the second run skipped all six model and category pairs.
+
+### D38. Live output in notebooks, and EfficientAD cut to 10 epochs
+On the second Phase 3 Colab run the notebook showed only the `$ command` lines: output of
+a child process started with `subprocess.run` does not reach the notebook, so nobody could
+tell whether EfficientAD `fabric` was training or stuck after 80 minutes. `run()` now reads
+the child's output as it arrives and prints it, so epochs and progress bars are visible
+(tested with a child that prints over time and one that fails). EfficientAD was cut from 20
+to 10 epochs: on a free Colab GPU with two CPU cores, decoding the large MVTec AD 2 images
+for every step is slow, and the PatchCore results already sat on Drive (D37), so only
+EfficientAD had to be rerun. This is a compute budget, about 2,000 to 4,000 steps against
+the paper's 70,000, and the results are reported as such.
