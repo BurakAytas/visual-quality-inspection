@@ -77,7 +77,11 @@ def predict(engine: Engine, model: AnomalibModule, loader: DataLoader) -> Predic
         n = len(batch.image_path)
         height, width = batch.anomaly_map.shape[-2:]
         paths += [str(p) for p in batch.image_path]
-        mask_paths += [str(p) if p else None for p in (batch.mask_path or [None] * n)]
+        # Good images have no mask; anomalib may report that as None, "" or the text "None".
+        mask_paths += [
+            str(p) if p and Path(str(p)).is_file() else None
+            for p in (batch.mask_path or [None] * n)
+        ]
         labels.append(batch.gt_label.cpu().reshape(n))
         scores.append(batch.pred_score.detach().cpu().reshape(n))
         maps.append(batch.anomaly_map.detach().cpu().reshape(n, height, width))

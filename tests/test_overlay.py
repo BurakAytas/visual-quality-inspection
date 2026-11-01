@@ -2,6 +2,7 @@ from pathlib import Path
 
 import cv2
 import numpy as np
+import pytest
 
 from vqi.overlay import MAX_SIDE, heatmap_overlay, save_overlay
 
@@ -37,3 +38,10 @@ def test_save_overlay_downscales_and_adds_caption(tmp_path: Path) -> None:
     saved = cv2.imread(str(out_path))
     assert saved.shape[1] == MAX_SIDE
     assert saved.shape[0] == 28 + MAX_SIDE // 2  # caption bar + image
+
+
+def test_unreadable_mask_path_raises_a_clear_error(tmp_path: Path) -> None:
+    image_path = tmp_path / "img.png"
+    cv2.imwrite(str(image_path), IMAGE)
+    with pytest.raises(FileNotFoundError, match="mask"):
+        save_overlay(tmp_path / "o.jpg", str(image_path), np.zeros((4, 4)), 0, 1, "x", "None")

@@ -197,3 +197,12 @@ over, all code cells were executed on CPU against synthetic archives laid out li
 Drive upload (`fabric.tar.gz`, `leather.tar.xz`, `carpet.tar.xz`), with a tiny untrained
 backbone in place of the GPU model: install, all three training runs, evaluation and the
 zip finished. Only the GPU check, Drive mount and browser download were stubbed.
+
+### D27. Mask path "None" as text (bug found on the Colab run)
+`leather` trained, then crashed while saving the failure gallery:
+`cv2.imread("None")` returned nothing. When anomalib collates a batch that mixes defective
+and good MVTec AD images, the good image's mask path becomes the string `'None'`
+(reproduced on CPU by collating one defective and one good sample). The CPU smoke test had
+missed it because its batches were never mixed. Fix: a mask path counts only if it is an
+existing file; `save_overlay` now raises a clear error if a given mask cannot be read.
+`fabric` (MVTec AD 2) was not affected and its results stand.

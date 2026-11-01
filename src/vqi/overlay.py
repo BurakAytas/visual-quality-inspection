@@ -47,7 +47,12 @@ def save_overlay(
     image = cv2.imread(image_path, cv2.IMREAD_COLOR)
     if image is None:
         raise FileNotFoundError(image_path)
-    mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE) > 0 if mask_path else None
+    mask = None
+    if mask_path:
+        mask_image = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+        if mask_image is None:
+            raise FileNotFoundError(f"Cannot read mask {mask_path}")
+        mask = mask_image > 0
     overlay = heatmap_overlay(image, anomaly_map, vmin, vmax, mask)
 
     scale = MAX_SIDE / max(overlay.shape[:2])
