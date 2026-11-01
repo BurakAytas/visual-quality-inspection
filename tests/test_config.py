@@ -36,6 +36,31 @@ def test_child_overrides_base(tmp_path: Path) -> None:
 VALID = "data_root: d\nresults_dir: r\nseed: 0\ndataset: {name: mvtec_ad, category: x}\n"
 
 
+MODEL_DIR = CONFIG_DIR / "models"
+
+
+@pytest.mark.parametrize("model", ["patchcore", "efficient_ad"])
+def test_model_file_replaces_the_whole_model_section(model: str) -> None:
+    config = load_config(CONFIG_DIR / "fabric.yaml", MODEL_DIR / f"{model}.yaml")
+    assert config.model.key == model.replace("_", "")
+    if model == "efficient_ad":
+        assert "backbone" not in config.model.params  # no PatchCore keys leak in
+        assert config.model.batch_size == 1
+        assert config.model.trainer["max_epochs"] > 0
+
+
+def test_model_file_with_other_sections_is_rejected(tmp_path: Path) -> None:
+    bad = tmp_path / "model.yaml"
+    bad.write_text("model: {name: Padim}\nseed: 3\n")
+    with pytest.raises(ValueError, match="only a 'model' section"):
+        load_config(CONFIG_DIR / "fabric.yaml", bad)
+
+
+def test_robustness_settings_come_from_base() -> None:
+    robustness = load_config(CONFIG_DIR / "fabric.yaml").robustness
+    assert robustness.brightness_factors == (0.7, 1.3)
+
+
 def test_minimal_config_is_valid(tmp_path: Path) -> None:
     path = tmp_path / "ok.yaml"
     path.write_text(VALID)

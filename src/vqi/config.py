@@ -40,13 +40,15 @@ class DatasetConfig:
 
 @dataclass(frozen=True)
 class ModelConfig:
-    """Anomaly model: anomalib class name, input size and constructor arguments."""
+    """Anomaly model: anomalib class name, input size, constructor and trainer arguments."""
 
     name: str = "Patchcore"
     image_size: int = 256
-    batch_size: int = 8
+    batch_size: int = 8  # training batch size
+    eval_batch_size: int = 8
     num_workers: int = 2
-    params: dict[str, Any] = field(default_factory=dict)
+    params: dict[str, Any] = field(default_factory=dict)  # passed to the anomalib model
+    trainer: dict[str, Any] = field(default_factory=dict)  # passed to the anomalib Engine
 
     @property
     def key(self) -> str:
@@ -71,6 +73,19 @@ class EvaluationConfig:
 
 
 @dataclass(frozen=True)
+class RobustnessConfig:
+    """Fixed perturbations applied to test images (threshold stays the clean one)."""
+
+    brightness_factors: tuple[float, ...] = (0.7, 1.3)
+    blur_sigma_fraction: float = 0.004  # Gaussian sigma as a share of image width
+    noise_std: float = 0.05  # on pixel values scaled to [0, 1]
+
+    def __post_init__(self) -> None:
+        """Store factors as a tuple (YAML gives a list) so the config stays immutable."""
+        object.__setattr__(self, "brightness_factors", tuple(map(float, self.brightness_factors)))
+
+
+@dataclass(frozen=True)
 class Config:
     """Top-level experiment config."""
 
@@ -78,6 +93,7 @@ class Config:
     model: ModelConfig
     threshold: ThresholdConfig
     evaluation: EvaluationConfig
+    robustness: RobustnessConfig
     seed: int
     results_dir: Path
 
@@ -116,13 +132,22 @@ def _rate(name: str, value: float) -> float:
     return value
 
 
-def load_config(path: str | Path) -> Config:
-    """Load and validate a config file.
+def load_config(path: str | Path, model_path: str | Path | None = None) -> Config:
+    """Load and validate a category config, optionally with a model config.
+
+    ``model_path`` points to a file with a ``model`` section (``configs/models/*.yaml``);
+    it replaces the whole ``model`` section, so one model's parameters never leak into
+    another's.
 
     Raises:
         ValueError: if a key is missing, unknown, or has an invalid value.
     """
     raw = _read_yaml(Path(path))
+    if model_path is not None:
+        model_raw = _read_yaml(Path(model_path))
+        if set(model_raw) != {"model"}:
+            raise ValueError(f"{model_path} must contain only a 'model' section")
+        raw["model"] = model_raw["model"]
     for key in ("dataset", "data_root", "seed", "results_dir"):
         if key not in raw:
             raise ValueError(f"'{key}' is required")
@@ -138,7 +163,12 @@ def load_config(path: str | Path) -> Config:
     dataset = DatasetConfig(**dataset_raw, data_root=data_root)
     _rate("dataset.val_split_ratio", dataset.val_split_ratio)
 
-    sections = {"model": ModelConfig, "threshold": ThresholdConfig, "evaluation": EvaluationConfig}
+    sections = {
+        "model": ModelConfig,
+        "threshold": ThresholdConfig,
+        "evaluation": EvaluationConfig,
+        "robustness": RobustnessConfig,
+    }
     built = {}
     for name, cls in sections.items():
         section = raw.get(name) or {}

@@ -1,0 +1,12 @@
+# PatchCore: memory bank of pretrained patch features from good images; no gradient training.
+model:
+  name: Patchcore          # anomalib model class name (anomalib.models.<name>)
+  image_size: 256          # square resize, no centre crop (a crop would hide edge defects)
+  batch_size: 8
+  eval_batch_size: 8
+  num_workers: 2
+  params:                  # passed unchanged to the anomalib model
+    backbone: wide_resnet50_2
+    layers: [layer2, layer3]
+    coreset_sampling_ratio: 0.1
+    num_neighbors: 9

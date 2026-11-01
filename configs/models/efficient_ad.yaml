@@ -1,0 +1,18 @@
+# EfficientAD: student-teacher network plus autoencoder, trained on good images.
+# On the first run anomalib downloads Imagenette (used as a penalty set during training)
+# and the pretrained teacher weights. The method comes from MVTec researchers; check its
+# patent and licence status before any commercial use.
+model:
+  name: EfficientAd
+  image_size: 256
+  batch_size: 1            # anomalib requires train batch size 1 for EfficientAD
+  eval_batch_size: 8
+  num_workers: 2
+  params:
+    model_size: small
+    imagenet_dir: data/imagenette
+  trainer:
+    # Compute budget for a free Colab GPU, far below the paper's 70k steps.
+    # Validation runs at the end of every epoch; EfficientAD needs it to set its map
+    # normalisation from good validation images, so an epoch count is used, not steps.
+    max_epochs: 20

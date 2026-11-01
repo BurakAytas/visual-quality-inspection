@@ -1,4 +1,5 @@
 # Shared settings. Category files extend this one and may override any key.
+# The model comes from a separate file in configs/models/ (passed with --model).
 # Datasets are never committed; scripts/download_data.py fills data_root.
 data_root: data
 results_dir: results
@@ -9,17 +10,6 @@ dataset:
   # (anomalib's default validation set for MVTec AD is a copy of the test set).
   val_split_ratio: 0.2
 
-model:
-  name: Patchcore          # anomalib model class name (anomalib.models.<name>)
-  image_size: 256          # square resize, no centre crop (a crop would hide edge defects)
-  batch_size: 8
-  num_workers: 2
-  params:                  # passed unchanged to the anomalib model
-    backbone: wide_resnet50_2
-    layers: [layer2, layer3]
-    coreset_sampling_ratio: 0.1
-    num_neighbors: 9
-
 threshold:
   # Threshold = this upper quantile of raw scores on good validation images.
   target_false_alarm_rate: 0.01
@@ -29,3 +19,9 @@ evaluation:
   # Test-set miss rate is also reported at this false-alarm rate, to compare models.
   fixed_false_alarm_rate: 0.01
   overlays_per_group: 8    # failure gallery: images per group (TP, FN, FP)
+
+robustness:
+  # Test images are perturbed before resizing; the clean threshold is kept.
+  brightness_factors: [0.7, 1.3]
+  blur_sigma_fraction: 0.004   # Gaussian blur sigma = 0.4% of image width
+  noise_std: 0.05              # Gaussian noise on pixel values in [0, 1], seeded per image
