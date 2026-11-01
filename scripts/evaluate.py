@@ -1,11 +1,14 @@
 """Compute test metrics from saved raw scores (runs on CPU, no model needed).
 
-Reads ``results/<model>/<category>/scores.csv``, the threshold from
+Reads ``results/<model>/<category>/scores*.csv``, the threshold from
 ``results/thresholds.json`` and the pixel metrics, then writes
-``results/metrics.json``, ``results/metrics.md`` and one score plot per category.
+``results/metrics.json`` + ``metrics.md`` (clean test set), ``results/robustness.json``
++ ``robustness.md`` (clean and perturbed test sets, same threshold) and one score plot
+per category.
 
 Example:
-    python scripts/evaluate.py configs/fabric.yaml configs/leather.yaml configs/carpet.yaml
+    python scripts/evaluate.py --model configs/models/patchcore.yaml \
+        configs/fabric.yaml configs/leather.yaml configs/carpet.yaml
 """
 
 import argparse
@@ -22,6 +25,7 @@ import numpy as np
 
 from vqi.config import Config, load_config
 from vqi.metrics import summarize
+from vqi.perturb import perturbations
 from vqi.threshold import load_threshold
 
 # Categorical colours (fixed order) and text colour, from a colour-blind-checked palette.
@@ -37,6 +41,9 @@ def physical_part(image: str) -> str:
     """Identify the physical part an image shows, e.g. ``fabric/test_public/bad/000``."""
     path = Path(image)
     return str(path.parent / LIGHTING_SUFFIX.sub("", path.stem))
+
+
+ROBUSTNESS_METRICS = ("image_auroc", "recall", "false_alarm_rate")
 
 
 def read_scores(path: Path) -> dict[str, np.ndarray]:
@@ -116,6 +123,34 @@ def evaluate(config: Config) -> tuple[str, dict]:
     }
 
 
+def evaluate_robustness(config: Config) -> dict:
+    """AUROC, recall and false-alarm rate on clean and perturbed test images.
+
+    The threshold is the clean one from validation: a camera that drifts does not
+    re-tune the threshold, so this shows what the line would see.
+    """
+    key = f"{config.model.key}/{config.dataset.category}"
+    out_dir = config.results_dir / config.model.key / config.dataset.category
+    threshold = load_threshold(config.results_dir / "thresholds.json", key)
+    files = {"clean": out_dir / "scores.csv"}
+    files |= {name: out_dir / f"scores_{name}.csv" for name in perturbations(config.robustness, 0)}
+    result = {}
+    for condition, path in files.items():
+        scores = read_scores(path)
+        summary = summarize(
+            scores["test_scores"],
+            scores["test_labels"],
+            threshold,
+            config.evaluation.fixed_false_alarm_rate,
+            config.evaluation.bootstrap_samples,
+            config.seed,
+            groups=scores["test_parts"],
+            names=ROBUSTNESS_METRICS,
+        )
+        result[condition] = {name: summary[name] for name in ROBUSTNESS_METRICS}
+    return result
+
+
 def fmt(metric: dict) -> str:
     """Value with its 95% CI, e.g. ``0.912 [0.871, 0.950]``."""
     low, high = metric["ci95"]
@@ -142,22 +177,53 @@ def markdown_table(results: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def robustness_table(results: dict) -> str:
+    """One row per model, category and test condition."""
+    lines = [
+        "| Model / category | Condition | Image AUROC | Recall | False-alarm rate |",
+        "|---|---|---|---|---|",
+    ]
+    for key, conditions in sorted(results.items()):
+        order = ["clean", *sorted(c for c in conditions if c != "clean")]
+        for condition in order:
+            m = conditions[condition]
+            lines.append(
+                f"| {key} | {condition} | {fmt(m['image_auroc'])} | {fmt(m['recall'])} "
+                f"| {fmt(m['false_alarm_rate'])} |"
+            )
+    return "\n".join(lines) + "\n"
+
+
+def _load(path: Path) -> dict:
+    """Existing JSON results (other models stay in the file), or an empty dict."""
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+
+
+def _save(path: Path, data: dict) -> None:
+    path.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
 def main() -> None:
-    """Evaluate every given config and merge into results/metrics.json."""
+    """Evaluate one model on every given category; merge into the results files."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("configs", nargs="+", type=Path)
-    configs = [load_config(p) for p in parser.parse_args().configs]
+    parser.add_argument("--model", required=True, type=Path, help="configs/models/<model>.yaml")
+    parser.add_argument("configs", nargs="+", type=Path, help="category configs")
+    args = parser.parse_args()
+    configs = [load_config(p, args.model) for p in args.configs]
 
     results_dir = configs[0].results_dir
-    metrics_path = results_dir / "metrics.json"
-    results = json.loads(metrics_path.read_text(encoding="utf-8")) if metrics_path.exists() else {}
+    metrics = _load(results_dir / "metrics.json")
+    robustness = _load(results_dir / "robustness.json")
     for config in configs:
         key, result = evaluate(config)
-        results[key] = result
+        metrics[key] = result
+        robustness[key] = evaluate_robustness(config)
         print(f"{key}: image AUROC {fmt(result['image']['image_auroc'])}")
 
-    metrics_path.write_text(json.dumps(results, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    (results_dir / "metrics.md").write_text(markdown_table(results), encoding="utf-8")
+    _save(results_dir / "metrics.json", metrics)
+    _save(results_dir / "robustness.json", robustness)
+    (results_dir / "metrics.md").write_text(markdown_table(metrics), encoding="utf-8")
+    (results_dir / "robustness.md").write_text(robustness_table(robustness), encoding="utf-8")
 
 
 if __name__ == "__main__":
