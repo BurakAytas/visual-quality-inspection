@@ -1,0 +1,6 @@
+# MVTec AD: secondary demo set.
+# Demo data only. To add a product, copy this file and change the category.
+extends: base.yaml
+dataset:
+  name: mvtec_ad
+  category: carpet

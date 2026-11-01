@@ -1,0 +1,3 @@
+# Shared settings. Category files extend this one.
+# Datasets are never committed; scripts/download_data.py fills this folder.
+data_root: data

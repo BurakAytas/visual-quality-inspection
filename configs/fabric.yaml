@@ -1,0 +1,6 @@
+# MVTec AD 2: main demo set (harder, not saturated).
+# Demo data only. To add a product, copy this file and change the category.
+extends: base.yaml
+dataset:
+  name: mvtec_ad2
+  category: fabric
