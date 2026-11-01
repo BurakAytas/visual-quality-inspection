@@ -8,8 +8,8 @@ are logged here too.
 ### D1. anomalib 2.7.0 is pinned; the rest of the stack is pinned to match it
 anomalib 2.7.0 (released 2026-10-06) needs Python >= 3.10, `torch >= 2.10`,
 `lightning >= 2.6` (excluding 2.6.2 and 2.6.3) and `opencv-python-headless`. Pins in
-`pyproject.toml`: torch 2.14.1 + torchvision 0.29.2 (torch 2.15.0 was four days old and
-torchvision 0.29.2 targets the 2.14 line), scikit-learn 1.9.1, onnx 1.23.2,
+`pyproject.toml`: torch 2.14.1 + torchvision 0.29.1 (torch 2.15.0 was four days old; see
+D22 for why not torchvision 0.29.2), scikit-learn 1.9.1, onnx 1.23.2,
 onnxruntime 1.31.1, openvino 2026.4.1, nncf 3.4.0, fastapi 0.162.0, uvicorn 0.54.0,
 streamlit 1.66.1. Checked: `pip install --dry-run ".[train,export,serve]"` resolves all pins
 together on Python 3.13 / Linux. It still has to be confirmed on the notebook's Python in
@@ -159,3 +159,11 @@ The default PyPI wheel of torch 2.14.1 is built for CUDA 13, which needs a recen
 driver. Notebooks install `torch==2.14.1` from the official PyTorch CUDA 12.6 index (same
 version, older driver requirement) and then stop with an assertion if no GPU is visible,
 so a run cannot fall back to CPU without notice.
+
+### D22. torchvision 0.29.2 replaced by 0.29.1 (failed on the first Colab run)
+The first Colab run stopped at install: no torchvision 0.29.2 wheel exists for Python 3.12
+on Linux, neither on PyPI nor on the PyTorch CUDA 12.6 index. The earlier dependency check
+ran on Python 3.13, where that wheel exists, so it did not catch this. torchvision 0.29.1
+was released together with torch 2.14.1 and has Python 3.12 Linux wheels on both indexes.
+Lesson: check pins against the notebook's Python version, not the local one. All other
+pinned binary packages were checked for Python 3.12 Linux wheels.

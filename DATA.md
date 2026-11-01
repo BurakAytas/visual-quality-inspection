@@ -68,7 +68,8 @@ project never uses them for metrics.
 1. Open the MVTec AD 2 page on the official MVTec website, fill in the form (name, email,
    non-commercial acknowledgment) and download the `fabric` archive.
 2. Make it available to the notebook:
-   - **Colab:** upload the archive to Google Drive, e.g. `MyDrive/datasets/mvtec_ad_2/`.
+   - **Colab:** upload the archive to Google Drive as `MyDrive/datasets/mvtec_ad_2/fabric.tar.gz`
+     (the notebook default; edit the path in step 3 if yours differs).
      The notebook mounts Drive at `/content/drive`.
    - **Kaggle:** create a private Kaggle Dataset from the archive. It appears read-only under
      `/kaggle/input/<your-dataset-name>/` (Kaggle may unpack it; both forms work).
