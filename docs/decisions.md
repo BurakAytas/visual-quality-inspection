@@ -82,3 +82,65 @@ word in `DATA.md`. The page now cites the IJCV 2026 journal version of the paper
 `DATA.md` cites that instead of the earlier arXiv preprint. The MVTec AD page also routes
 downloads through a web form; `DATA.md` asks the user to fill it in before running the
 download script.
+
+## Phase 2: PatchCore baseline
+
+### D12. Our own threshold policy: a false-alarm quantile of good validation scores
+anomalib's default `F1AdaptiveThreshold` needs defective images in validation. Our
+validation sets hold good images only (D5, D6), so it would fall back to the maximum
+normal score with a warning. Instead `vqi.threshold.threshold_for_false_alarm_rate` takes
+good-image scores and a target false-alarm rate (1%) and nothing else: with n images it
+allows k = floor(rate * n) of them above the threshold. A unit test checks that the
+function cannot receive labels. The threshold, quantile, n and the observed validation
+false-alarm rate are stored in `results/thresholds.json` under `<model>/<category>`.
+Limit: with n validation images the false-alarm rate cannot be resolved below 1/n; with
+fewer than 100 images a 1% target becomes "maximum normal score".
+
+### D13. First version used `np.quantile(method="higher")`; replaced (bug found by a test)
+On 1000 scores the 99% "higher" quantile is the 991st value, which allows only 9 false
+alarms (0.9%) when 10 (1.0%) are allowed. The unit test that checks "one step lower would
+exceed the target" failed. Fixed by sorting and taking the (k+1)-th highest score directly.
+
+### D14. anomalib normalization and thresholding are switched off
+`PostProcessor(enable_normalization=False, enable_thresholding=False)`. The model then
+returns raw scores and raw anomaly maps. Reasons: the threshold must be ours (D12), and
+normalised scores depend on min/max statistics that anomalib collects on the validation
+set, which adds a hidden second calibration step. Phase 5 (export) and the API must apply
+our threshold to the same raw score. anomalib's evaluator and visualizer are off too; the
+metrics are computed in `vqi.metrics` from saved raw scores.
+
+### D15. Raw scores are saved, metrics are computed from them on CPU
+The GPU notebook writes `results/<model>/<category>/scores.csv` (every validation and test
+image, relative paths only). `scripts/evaluate.py` turns these into `results/metrics.json`
+without a GPU or the dataset, so every README number can be recomputed from the committed
+files.
+
+### D16. Metrics reported
+- Image AUROC (threshold-free ranking quality).
+- F1, precision, recall, false-alarm rate and miss rate at **our validation threshold**:
+  what would happen on the line.
+- Miss rate at a fixed 1% false-alarm rate **on the test good images**. This threshold is
+  read from test data, so it is a comparison metric between models (like TPR at fixed FPR),
+  not a deployable setting. It is labelled that way everywhere.
+- Pixel AU-PRO with FPR limits 0.3 (MVTec AD convention) and 0.05 (MVTec AD 2 paper
+  convention), from anomalib's `AUPRO` on raw anomaly maps at model resolution.
+- 95% CIs: stratified bootstrap (good and defective images resampled separately,
+  1000 resamples, fixed seed). The threshold is held fixed, so the CI covers test-sample
+  variation only, not threshold uncertainty from the validation set.
+
+### D17. Input: 256 x 256 resize, no centre crop
+PatchCore's default pre-processor in anomalib 2.7.0 is a resize to 256 x 256 (a centre crop
+is optional). A crop would cut away defects near the image border, so none is used.
+Downscaling high-resolution MVTec AD 2 images to 256 px can hide very small defects; this
+is a known limit of the baseline and is recorded in the results.
+
+### D18. Model built from config by class name
+`model.name: Patchcore` is looked up as `anomalib.models.Patchcore`; `model.params` go to
+its constructor unchanged. A second model in Phase 3 needs a config change, not new code.
+
+### D19. Failure gallery
+For each category: the 8 highest-scoring caught defects (TP), the 8 lowest-scoring missed
+defects (FN) and the 8 highest-scoring false alarms (FP). The heatmap colour scale is fixed
+per model and category: transparent at the median pixel score of good validation images,
+strongest at the image threshold. Ground-truth defect regions are outlined in green.
+Images are saved as 512 px JPEGs to keep the repository small.
