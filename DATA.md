@@ -20,19 +20,31 @@ share-alike). Consequences for this repository:
   GitHub release, never in git), they carry the same CC BY-NC-SA 4.0 licence.
 - The MIT licence of this repository covers the code only, not the data or weights.
 
-### MVTec AD 2 licence text
+### Official licence text
 
-**Pending.** The official licence text must be read on the MVTec AD 2 page of the MVTec
-website and quoted here word for word before any MVTec AD 2 image is used (Phase 2).
-It has not been quoted yet because the build environment could not reach the MVTec website.
+Quoted word for word from the "License Terms" section of the official MVTec AD 2 page
+(<https://www.mvtec.com/research-teaching/datasets/mvtec-ad-2>, read on 2026-11-01).
+The MVTec AD page (<https://www.mvtec.com/research-teaching/datasets/mvtec-ad>) has the
+same text.
+
+> The data is released under the Creative Commons Attribution-NonCommercial-ShareAlike 4.0
+> International License (CC BY-NC-SA 4.0).
+>
+> In particular, it is not allowed to use the dataset for commercial purposes. If you are
+> unsure whether or not your application violates the non-commercial use clause of the
+> license, please contact us.
+
+Licence: <https://creativecommons.org/licenses/by-nc-sa/4.0/>
 
 ### Citations
 
-- MVTec AD 2: Heckler-Kram, Neudeck, Scheler, König, Steger. *The MVTec AD 2 Dataset:
-  Advanced Scenarios for Unsupervised Anomaly Detection.* arXiv:2503.21622, 2025.
-- MVTec AD: Bergmann, Batzner, Fauser, Sattlegger, Steger. *The MVTec Anomaly Detection
-  Dataset: A Comprehensive Real-World Dataset for Unsupervised Anomaly Detection.*
-  IJCV 129, 2021.
+- MVTec AD 2: Lars Heckler-Kram, Jan-Hendrik Neudeck, Ulla Scheler, Rebecca König,
+  Carsten Steger. *The MVTec AD 2 Dataset: Advanced Scenarios for Unsupervised Anomaly
+  Detection.* International Journal of Computer Vision 134(4), 2026.
+  DOI: 10.1007/s11263-026-02743-0
+- MVTec AD: Paul Bergmann, Kilian Batzner, Michael Fauser, David Sattlegger, Carsten Steger.
+  *The MVTec Anomaly Detection Dataset: A Comprehensive Real-World Dataset for Unsupervised
+  Anomaly Detection.* International Journal of Computer Vision 129, 2021.
 
 ## Folder layout
 
@@ -77,9 +89,10 @@ python scripts/download_data.py --config configs/leather.yaml
 python scripts/download_data.py --config configs/carpet.yaml
 ```
 
-This downloads the official MVTec AD archive (all 15 categories, about 5 GB) with the URL
-and SHA-256 checksum that anomalib 2.7.0 ships. A manually downloaded archive also works
-with `--source`.
+This downloads the official MVTec AD archive (all 15 categories, about 5 GB) from MVTec's
+own file share, with the URL and SHA-256 checksum that anomalib 2.7.0 ships. The MVTec AD
+page also offers the download through a web form; fill it in first so the non-commercial
+terms are acknowledged. A manually downloaded archive also works with `--source`.
 
 ## Adding another category
 

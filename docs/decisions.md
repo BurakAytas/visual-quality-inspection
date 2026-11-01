@@ -75,6 +75,10 @@ later phase.
 The code is the author's own work. The datasets are non-commercial and share-alike, so any
 weights trained on them inherit that licence.
 
-### Open item: MVTec AD 2 licence text not quoted yet
-The build environment could not reach the MVTec website, so the official licence text is not
-yet quoted in `DATA.md`. It must be read and quoted before Phase 2 uses the data.
+### D11. MVTec AD 2 licence checked against the official page
+Read on 2026-11-01 from the official MVTec AD 2 page: CC BY-NC-SA 4.0, commercial use not
+allowed. This matches the project plan, so no change was needed. The text is quoted word for
+word in `DATA.md`. The page now cites the IJCV 2026 journal version of the paper, so
+`DATA.md` cites that instead of the earlier arXiv preprint. The MVTec AD page also routes
+downloads through a web form; `DATA.md` asks the user to fill it in before running the
+download script.
