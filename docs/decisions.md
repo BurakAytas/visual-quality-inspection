@@ -206,3 +206,51 @@ and good MVTec AD images, the good image's mask path becomes the string `'None'`
 missed it because its batches were never mixed. Fix: a mask path counts only if it is an
 existing file; `save_overlay` now raises a clear error if a given mask cannot be read.
 `fabric` (MVTec AD 2) was not affected and its results stand.
+
+### D28. Bootstrap over physical parts, not images (MVTec AD 2 test design)
+MVTec AD 2 `test_public` photographs every part under six lights (`_regular`,
+`_overexposed`, `_underexposed`, `_shift_1..3`): 156 `fabric` test images are 26 parts
+(15 defective, 11 good). The first metrics resampled images as if they were independent,
+which made the intervals too narrow: image AUROC 0.657 had a 95% CI of [0.566, 0.739].
+`scripts/evaluate.py` now maps each image to its part (`physical_part`), and
+`vqi.metrics.bootstrap_ci` resamples whole parts. The `fabric` AUROC CI became
+[0.473, 0.825], which includes 0.5. MVTec AD has one image per part, so `leather` and
+`carpet` did not change. A unit test checks that grouping widens the interval when
+images repeat one part.
+
+### D29. README claim checker reads dotted keys and list items
+Pixel metrics are stored as `pixel_aupro_0.3`, and CIs as `[low, high]` lists. The checker
+now matches the longest key at each level and accepts a number as a list index
+(`...ci95.0`). Both cases have tests.
+
+### D30. Phase 2 results and what they say (computed from the committed `results/`)
+Run on a Colab T4 with anomalib 2.7.0 and torch 2.14.1 (CUDA 13 build). `fabric` was
+trained at commit `d7ea3ac`, `leather` and `carpet` at `0e019aa` (after the D27 fix, which
+only touches the failure gallery). All metrics were recomputed on CPU from `scores.csv`
+and matched the Colab output exactly before D28 changed the intervals.
+
+Negative results, kept on purpose:
+- `fabric` (MVTec AD 2): image AUROC 0.657 [0.473, 0.825]; at the validation threshold
+  recall is 0.144, so 85.6% of defective images are missed. Pixel AU-PRO is 0.296 (FPR up
+  to 0.3) and 0.029 (FPR up to 0.05).
+- Scores by lighting, from `results/patchcore/fabric/scores.csv`: all 43 validation images
+  are `_regular`, median score 36.9. Test good parts score higher even under regular light
+  (median 38.9). In every lighting, defective and good medians are within about 1 point.
+  Under regular light 1 of 15 defects is caught; under `shift_2`/`shift_3` 4 of 15, with
+  1 of 11 good parts flagged. So the main problem is weak separation, and a second one is
+  that validation covers only one lighting condition.
+- Failure gallery: missed `fabric` defects are thin lines and small marks that resemble
+  the printed pattern; the two false alarms come from shifted-light images, where the
+  heatmap spreads over the lit areas. The missed `carpet` defects are a thin metal strand
+  with the weave's colour and a thread defect. The `leather` false alarms have hot spots
+  near the image border.
+- Threshold vs. target: with 43 to 56 validation images the 1% target allows zero false
+  alarms, so each threshold is the highest validation score. Test false-alarm rates were
+  3.0% (`fabric`), 9.4% (`leather`) and 7.1% (`carpet`), with intervals up to 18.8%.
+  Production consequence: calibrate on more good parts, under every lighting the line
+  uses, and recheck the false-alarm rate on fresh good parts before trusting the 1%.
+- `leather` (AUROC 1.000) and `carpet` (0.988) confirm that MVTec AD is close to saturated.
+
+Ideas for later phases, not done here: higher input resolution or tiling for `fabric`
+(defects are small relative to the image), and a validation set that includes every
+lighting condition. Changing either would be a scope decision for the user.
