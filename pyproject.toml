@@ -10,8 +10,14 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [{ name = "Burak Aytaş" }]
-# Core dependencies stay tiny so CI and the API container do not pull in GPU stacks.
-dependencies = ["pyyaml>=6.0"]
+# Core dependencies: no deep-learning stack, so CI and the API container stay small.
+dependencies = [
+    "pyyaml>=6.0",
+    "numpy>=1.26",
+    "scikit-learn==1.9.1",
+    "opencv-python-headless==5.0.0.93",
+    "matplotlib==3.11.2",
+]
 
 [project.optional-dependencies]
 # GPU notebooks (Colab / Kaggle): training and evaluation.
@@ -19,8 +25,6 @@ train = [
     "anomalib==2.7.0",
     "torch==2.14.1",
     "torchvision==0.29.2",
-    "scikit-learn==1.9.1",
-    "opencv-python-headless==5.0.0.93",
 ]
 # Model export and CPU inference benchmarks.
 export = [

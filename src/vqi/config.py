@@ -1,10 +1,10 @@
 """Load experiment configs from YAML.
 
-A category config names one dataset and one category and may extend a base file.
+A category config names one dataset and one category and extends a base file.
 Adding a new product means adding a new YAML file, not changing code.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field, fields
 from pathlib import Path
 from typing import Any
 
@@ -24,6 +24,8 @@ class DatasetConfig:
     name: str
     category: str
     data_root: Path
+    # MVTec AD only: share of train/good moved into a good-only validation set.
+    val_split_ratio: float = 0.2
 
     @property
     def root(self) -> Path:
@@ -37,10 +39,47 @@ class DatasetConfig:
 
 
 @dataclass(frozen=True)
+class ModelConfig:
+    """Anomaly model: anomalib class name, input size and constructor arguments."""
+
+    name: str = "Patchcore"
+    image_size: int = 256
+    batch_size: int = 8
+    num_workers: int = 2
+    params: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def key(self) -> str:
+        """Short lower-case name used in result paths, e.g. ``patchcore``."""
+        return self.name.lower()
+
+
+@dataclass(frozen=True)
+class ThresholdConfig:
+    """Threshold policy: accept this share of false alarms on good validation images."""
+
+    target_false_alarm_rate: float = 0.01
+
+
+@dataclass(frozen=True)
+class EvaluationConfig:
+    """Settings for test-set metrics and the failure gallery."""
+
+    bootstrap_samples: int = 1000
+    fixed_false_alarm_rate: float = 0.01
+    overlays_per_group: int = 8
+
+
+@dataclass(frozen=True)
 class Config:
     """Top-level experiment config."""
 
     dataset: DatasetConfig
+    model: ModelConfig
+    threshold: ThresholdConfig
+    evaluation: EvaluationConfig
+    seed: int
+    results_dir: Path
 
 
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
@@ -63,6 +102,20 @@ def _read_yaml(path: Path) -> dict[str, Any]:
     return _deep_merge(_read_yaml(path.parent / parent), raw)
 
 
+def _check_keys(section: str, raw: dict[str, Any], cls: type) -> None:
+    """Reject keys that the dataclass ``cls`` does not have (catches typos)."""
+    unknown = set(raw) - {f.name for f in fields(cls)}
+    if unknown:
+        raise ValueError(f"Unknown keys in '{section}': {sorted(unknown)}")
+
+
+def _rate(name: str, value: float) -> float:
+    """Check that a rate lies strictly between 0 and 1."""
+    if not 0 < value < 1:
+        raise ValueError(f"{name} must be between 0 and 1, got {value}")
+    return value
+
+
 def load_config(path: str | Path) -> Config:
     """Load and validate a config file.
 
@@ -70,20 +123,33 @@ def load_config(path: str | Path) -> Config:
         ValueError: if a key is missing, unknown, or has an invalid value.
     """
     raw = _read_yaml(Path(path))
-    unknown = set(raw) - {"data_root", "dataset"}
-    if unknown:
-        raise ValueError(f"Unknown config keys: {sorted(unknown)}")
+    for key in ("dataset", "data_root", "seed", "results_dir"):
+        if key not in raw:
+            raise ValueError(f"'{key}' is required")
+    data_root = Path(raw.pop("data_root"))
+    _check_keys("top level", raw, Config)
 
-    dataset = raw.get("dataset") or {}
-    name = dataset.get("name")
-    category = dataset.get("category")
-    if name not in DATASET_DIRS:
-        raise ValueError(f"dataset.name must be one of {sorted(DATASET_DIRS)}, got {name!r}")
-    if not category:
+    dataset_raw = raw["dataset"]
+    _check_keys("dataset", dataset_raw, DatasetConfig)
+    if dataset_raw.get("name") not in DATASET_DIRS:
+        raise ValueError(f"dataset.name must be one of {sorted(DATASET_DIRS)}")
+    if not dataset_raw.get("category"):
         raise ValueError("dataset.category is required")
-    if "data_root" not in raw:
-        raise ValueError("data_root is required")
+    dataset = DatasetConfig(**dataset_raw, data_root=data_root)
+    _rate("dataset.val_split_ratio", dataset.val_split_ratio)
+
+    sections = {"model": ModelConfig, "threshold": ThresholdConfig, "evaluation": EvaluationConfig}
+    built = {}
+    for name, cls in sections.items():
+        section = raw.get(name) or {}
+        _check_keys(name, section, cls)
+        built[name] = cls(**section)
+    _rate("threshold.target_false_alarm_rate", built["threshold"].target_false_alarm_rate)
+    _rate("evaluation.fixed_false_alarm_rate", built["evaluation"].fixed_false_alarm_rate)
 
     return Config(
-        dataset=DatasetConfig(name=name, category=category, data_root=Path(raw["data_root"]))
+        dataset=dataset,
+        seed=int(raw["seed"]),
+        results_dir=Path(raw["results_dir"]),
+        **built,
     )

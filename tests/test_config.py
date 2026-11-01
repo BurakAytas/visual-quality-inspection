@@ -25,24 +25,40 @@ def test_fabric_points_at_mvtec_ad2() -> None:
 
 
 def test_child_overrides_base(tmp_path: Path) -> None:
-    (tmp_path / "base.yaml").write_text("data_root: a\ndataset: {name: mvtec_ad, category: x}\n")
+    (tmp_path / "base.yaml").write_text(
+        "data_root: a\nresults_dir: r\nseed: 1\ndataset: {name: mvtec_ad, category: x}\n"
+    )
     (tmp_path / "child.yaml").write_text("extends: base.yaml\ndataset: {category: y}\n")
     dataset = load_config(tmp_path / "child.yaml").dataset
     assert (dataset.data_root, dataset.name, dataset.category) == (Path("a"), "mvtec_ad", "y")
 
 
+VALID = "data_root: d\nresults_dir: r\nseed: 0\ndataset: {name: mvtec_ad, category: x}\n"
+
+
+def test_minimal_config_is_valid(tmp_path: Path) -> None:
+    path = tmp_path / "ok.yaml"
+    path.write_text(VALID)
+    config = load_config(path)
+    assert config.model.key == "patchcore"
+    assert config.threshold.target_false_alarm_rate == 0.01
+
+
 @pytest.mark.parametrize(
-    "body",
+    ("old", "new"),
     [
-        "data_root: d\ndataset: {name: imagenet, category: x}\n",
-        "data_root: d\ndataset: {name: mvtec_ad}\n",
-        "dataset: {name: mvtec_ad, category: x}\n",
-        "data_root: d\ndataset: {name: mvtec_ad, category: x}\ntypo_key: 1\n",
+        ("name: mvtec_ad", "name: imagenet"),
+        (", category: x", ""),
+        ("seed: 0\n", ""),
+        ("seed: 0\n", "seed: 0\ntypo_key: 1\n"),
+        ("seed: 0\n", "seed: 0\nmodel: {image_sise: 128}\n"),
+        ("seed: 0\n", "seed: 0\nthreshold: {target_false_alarm_rate: 1.5}\n"),
     ],
-    ids=["unknown-dataset", "no-category", "no-data-root", "unknown-key"],
+    ids=["unknown-dataset", "no-category", "no-seed", "unknown-key", "model-typo", "bad-rate"],
 )
-def test_invalid_config_is_rejected(tmp_path: Path, body: str) -> None:
+def test_invalid_config_is_rejected(tmp_path: Path, old: str, new: str) -> None:
+    assert old in VALID
     path = tmp_path / "bad.yaml"
-    path.write_text(body)
+    path.write_text(VALID.replace(old, new))
     with pytest.raises(ValueError):
         load_config(path)

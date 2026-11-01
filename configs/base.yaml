@@ -1,3 +1,31 @@
-# Shared settings. Category files extend this one.
-# Datasets are never committed; scripts/download_data.py fills this folder.
+# Shared settings. Category files extend this one and may override any key.
+# Datasets are never committed; scripts/download_data.py fills data_root.
 data_root: data
+results_dir: results
+seed: 42
+
+dataset:
+  # MVTec AD only: share of train/good moved into a good-only validation set
+  # (anomalib's default validation set for MVTec AD is a copy of the test set).
+  val_split_ratio: 0.2
+
+model:
+  name: Patchcore          # anomalib model class name (anomalib.models.<name>)
+  image_size: 256          # square resize, no centre crop (a crop would hide edge defects)
+  batch_size: 8
+  num_workers: 2
+  params:                  # passed unchanged to the anomalib model
+    backbone: wide_resnet50_2
+    layers: [layer2, layer3]
+    coreset_sampling_ratio: 0.1
+    num_neighbors: 9
+
+threshold:
+  # Threshold = this upper quantile of raw scores on good validation images.
+  target_false_alarm_rate: 0.01
+
+evaluation:
+  bootstrap_samples: 1000
+  # Test-set miss rate is also reported at this false-alarm rate, to compare models.
+  fixed_false_alarm_rate: 0.01
+  overlays_per_group: 8    # failure gallery: images per group (TP, FN, FP)
