@@ -254,3 +254,58 @@ Negative results, kept on purpose:
 Ideas for later phases, not done here: higher input resolution or tiling for `fabric`
 (defects are small relative to the image), and a validation set that includes every
 lighting condition. Changing either would be a scope decision for the user.
+
+## Phase 3: EfficientAD comparison and robustness
+
+### D31. Model settings live in `configs/models/*.yaml`, passed with `--model`
+A category config describes data; a model config describes the model. The model file
+replaces the whole `model` section, so PatchCore's `backbone` cannot leak into
+EfficientAD's constructor (a deep merge would have done that). `model.trainer` is passed
+to the anomalib `Engine` (Lightning trainer), `model.eval_batch_size` is separate because
+EfficientAD must train with batch size 1 but can score in batches.
+
+### D32. EfficientAD settings and their limits
+`EfficientAd(model_size="small")`, train batch size 1 (anomalib raises an error
+otherwise), 20 epochs. The paper trains for 70,000 steps; 20 epochs is about 4,000 to
+8,000 steps here, a budget for a free Colab GPU, so the result is "EfficientAD at this
+budget", not the best EfficientAD can do. Epochs are used instead of steps because
+EfficientAD sets its anomaly-map normalisation (90% and 99.5% quantiles) in
+`on_validation_start` from the validation loader, and Lightning validates at the end of
+each epoch. That loader holds good images only, so no labels are used, but the same good
+images also set our threshold; this makes validation scores slightly optimistic for
+EfficientAD. On first use anomalib downloads Imagenette (penalty images for the student)
+and the pretrained teacher weights.
+
+### D33. EfficientAD patent note is worded carefully
+The brief asks for a README note that EfficientAD is patented with limited commercial use.
+I could not confirm a specific patent: web searches found the paper (by MVTec authors) and
+one US patent by an overlapping group of MVTec authors whose claims I could not read. The
+README therefore says the method comes from MVTec researchers and that patent and licence
+status must be checked before commercial use, without naming a patent number.
+
+### D34. Robustness test design
+Four fixed perturbations, applied to test images at full resolution before the model's
+resize (`vqi.perturb`, wrapped as a torchvision transform in `vqi.anomaly.PerturbImage`;
+masks are left unchanged): brightness x0.7 and x1.3, Gaussian blur with sigma = 0.4% of
+the image width, Gaussian noise with std 0.05 on [0, 1] pixels. Noise is seeded from the
+global seed and the image's own pixels, so it does not depend on loading order or worker
+count. The threshold stays the clean one from validation: a camera that drifts does not
+re-tune the threshold, so recall and false-alarm rate under perturbation show what the line
+would see. AUROC is reported too, because it separates "the ranking broke" from "only the
+threshold no longer fits".
+
+### D35. Faster bootstrap: numpy counts, and only the metrics that are needed
+The robustness table bootstraps 3 metrics for 5 conditions per model and category. With
+sklearn's `confusion_matrix` inside the bootstrap loop and all 7 metrics per condition, the
+CPU evaluation of two small synthetic categories took over two minutes. `operating_point`
+now counts TP/FP/FN/TN with numpy, and `summarize(names=...)` computes only the requested
+metrics: 40 seconds for two models and two categories.
+
+### D36. Phase 3 notebook simulated before release
+As in D26, all code cells of `notebooks/03_efficientad_robustness.ipynb` were run on CPU
+against synthetic archives: install, data, PatchCore and EfficientAD on three categories
+(with tiny settings and a randomly initialised teacher saved where anomalib looks for the
+downloaded weights), robustness predictions, evaluation and the zip. Only the GPU check,
+Drive mount and browser download were stubbed. PatchCore is retrained in this notebook
+because no weights are kept; its clean numbers may differ slightly from Phase 2 because of
+GPU non-determinism, and the README is regenerated from the new files.

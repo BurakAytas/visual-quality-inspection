@@ -61,11 +61,21 @@ pip install -e ".[dev]"
 pytest
 ```
 
-Put a dataset in place (details in [DATA.md](DATA.md)):
+Put a dataset in place (details in [DATA.md](DATA.md)), then train and evaluate a model
+(GPU notebooks in `notebooks/` do the same steps on Colab or Kaggle):
 
 ```bash
 python scripts/download_data.py --config configs/leather.yaml --source /path/to/leather.tar.xz
+python scripts/train_anomaly.py --config configs/leather.yaml --model configs/models/patchcore.yaml
+python scripts/evaluate.py --model configs/models/patchcore.yaml configs/leather.yaml
 ```
+
+## Models
+
+- **PatchCore** (`configs/models/patchcore.yaml`): memory bank of pretrained patch features.
+- **EfficientAD** (`configs/models/efficient_ad.yaml`): student-teacher network with an
+  autoencoder. The method was published by MVTec researchers; check its patent and
+  licence status before any commercial use (see `docs/decisions.md`, D33).
 
 ## Project status
 
