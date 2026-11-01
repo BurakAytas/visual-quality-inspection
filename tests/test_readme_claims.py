@@ -28,11 +28,14 @@ def run_check(tmp_path: Path, readme: str, metrics: dict) -> subprocess.Complete
         "Miss rate 4.2%<!-- claim: results/m.json#fabric.miss -->",
         "<!-- results:start -->| 0.87 <!-- claim: results/m.json#fabric.auroc --> |"
         "<!-- results:end -->",
+        "AU-PRO 0.30<!-- claim: results/m.json#fabric.aupro_0.3 -->",
+        "CI high 0.95<!-- claim: results/m.json#fabric.ci.1 -->",
     ],
-    ids=["plain", "percent", "results-block"],
+    ids=["plain", "percent", "results-block", "dotted-key", "list-index"],
 )
 def test_matching_claims_pass(tmp_path: Path, readme: str) -> None:
-    result = run_check(tmp_path, readme, {"fabric": {"auroc": 0.87312, "miss": 0.0421}})
+    metrics = {"fabric": {"auroc": 0.87312, "miss": 0.0421, "aupro_0.3": 0.3, "ci": [0.8, 0.95]}}
+    result = run_check(tmp_path, readme, metrics)
     assert result.returncode == 0, result.stderr
 
 

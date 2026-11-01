@@ -23,13 +23,26 @@ RESULTS_BLOCK = re.compile(r"<!--\s*results:start\s*-->(.*?)<!--\s*results:end\s
 
 
 def lookup(data: object, dotted_key: str) -> float:
-    """Follow ``a.b.c`` through nested dicts and return a number."""
-    for part in dotted_key.split("."):
-        if not isinstance(data, dict) or part not in data:
+    """Follow ``a.b.c`` through nested dicts and return a number.
+
+    JSON keys may contain dots themselves (``pixel_aupro_0.3``), so at each level the
+    longest key that matches the start of the remaining path is used. A number selects
+    a list item.
+    """
+    if dotted_key:
+        if isinstance(data, list):  # e.g. a confidence interval: ci95.0 / ci95.1
+            index, _, rest = dotted_key.partition(".")
+            if not index.isdigit() or int(index) >= len(data):
+                raise KeyError(dotted_key)
+            return lookup(data[int(index)], rest)
+        if not isinstance(data, dict):
             raise KeyError(dotted_key)
-        data = data[part]
+        for key in sorted(data, key=len, reverse=True):
+            if dotted_key == key or dotted_key.startswith(key + "."):
+                return lookup(data[key], dotted_key[len(key) + 1 :])
+        raise KeyError(dotted_key)
     if isinstance(data, bool) or not isinstance(data, int | float):
-        raise TypeError(f"{dotted_key} is not a number")
+        raise TypeError("value is not a number")
     return float(data)
 
 
