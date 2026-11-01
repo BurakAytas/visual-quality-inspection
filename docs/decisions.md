@@ -144,3 +144,18 @@ defects (FN) and the 8 highest-scoring false alarms (FP). The heatmap colour sca
 per model and category: transparent at the median pixel score of good validation images,
 strongest at the image threshold. Ground-truth defect regions are outlined in green.
 Images are saved as 512 px JPEGs to keep the repository small.
+
+### D20. pandas pinned to 2.3.3 (bug found in a CPU smoke test)
+A CPU run of `scripts/train_anomaly.py` on a small synthetic dataset crashed inside
+anomalib: `TypeError: Path must be None, a string, or Path object, got <class 'float'>`.
+Cause: anomalib 2.7.0 has no upper bound on pandas, and pandas 3 stores a missing value in
+a string column as `NaN` instead of `None`, so good images without a mask get
+`mask_path = NaN`. Pinning `pandas==2.3.3` in the `train` extra fixed it; the same smoke
+run then finished for both dataset layouts (MVTec AD 2, and MVTec AD with a train-based
+validation split) and `scripts/evaluate.py` produced the table.
+
+### D21. torch installed from the CUDA 12.6 build in notebooks
+The default PyPI wheel of torch 2.14.1 is built for CUDA 13, which needs a recent GPU
+driver. Notebooks install `torch==2.14.1` from the official PyTorch CUDA 12.6 index (same
+version, older driver requirement) and then stop with an assertion if no GPU is visible,
+so a run cannot fall back to CPU without notice.
