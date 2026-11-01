@@ -37,9 +37,9 @@ torch and torchvision came from different CUDA builds (D23); Colab has a `/kaggl
 (D25); the MVTec AD download link was dead (D24); a mask path arrived as the text "None"
 (D27); and the first intervals ignored the six-lights design (D28).
 
-## What to say in 2 minutes
+## Summary
 
-"Phase 2 is the baseline, and the point is the measurement, not the score. PatchCore
+Phase 2 is the baseline, and the point is the measurement, not the score. PatchCore
 learns from good parts only. I set the threshold on good validation images for a 1%
 false-alarm target; the function cannot even receive labels, and a test checks that.
 Then I score the test set once.
@@ -57,4 +57,4 @@ on more good parts, under every lighting the line uses, and re-measure. Second, 
 photographs each part under six lights. When I bootstrapped images, the AUROC interval
 looked tight; when I resampled physical parts, it widened to 0.47 to 0.83, so with 26 parts
 I cannot claim fabric is clearly better than chance. I report that instead of a nicer
-number. Everything in the README is checked against the results JSON in CI."
+number. Everything in the README is checked against the results JSON in CI.

@@ -24,9 +24,9 @@
   validation set for MVTec AD is a copy of the test set. Tuning a threshold on it would
   have been test-set leakage.
 
-## What to say in 2 minutes
+## Summary
 
-"Phase 1 is the skeleton, but I made three choices on purpose. First, everything is driven
+Phase 1 is the skeleton, but I made three choices on purpose. First, everything is driven
 by config: a new product is a new YAML file. Second, dependencies are split so CI runs in
 seconds without a GPU, and the training stack is pinned to anomalib 2.7.0; I checked that
 all pins resolve together. Third, I read anomalib's data code before trusting it. For MVTec
@@ -36,4 +36,4 @@ will take validation images from the training set instead. That gives one honest
 both datasets: the threshold comes only from good validation images. I also added a CI check
 that every number in the README must come from a results JSON file. The tests are real: each
 one fails if the code it covers breaks, for example a config typo, a missing data folder, or
-a README number that does not match its JSON."
+a README number that does not match its JSON.
