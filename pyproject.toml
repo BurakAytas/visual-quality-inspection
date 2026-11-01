@@ -25,6 +25,8 @@ train = [
     "anomalib==2.7.0",
     "torch==2.14.1",
     "torchvision==0.29.2",
+    # anomalib 2.7.0 breaks on pandas 3 (missing mask paths become NaN); see decisions D20.
+    "pandas==2.3.3",
 ]
 # Model export and CPU inference benchmarks.
 export = [
