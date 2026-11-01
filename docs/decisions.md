@@ -309,3 +309,12 @@ downloaded weights), robustness predictions, evaluation and the zip. Only the GP
 Drive mount and browser download were stubbed. PatchCore is retrained in this notebook
 because no weights are kept; its clean numbers may differ slightly from Phase 2 because of
 GPU non-determinism, and the README is regenerated from the new files.
+
+### D37. Notebooks keep results on Drive and resume after a disconnect
+The first Phase 3 Colab run stopped during EfficientAD `fabric`, after all PatchCore runs
+had finished; a Colab disconnect deletes the runtime's disk, so those runs were lost. On
+Colab the notebooks now link `results/` to `MyDrive/vqi_results/phase<N>/`, so every
+finished model and category is kept. On a rerun, a model and category is skipped when its
+`run_info.json` (written last by `train_anomaly.py`) is at least as new as its
+`scores_noise.csv`; a run cut off half-way is redone. Checked by running the simulated
+notebook twice: the second run skipped all six model and category pairs.
