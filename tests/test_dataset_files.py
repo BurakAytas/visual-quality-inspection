@@ -66,3 +66,18 @@ def test_install_refuses_to_overwrite(tmp_path: Path) -> None:
     dataset.category_dir.mkdir(parents=True)
     with pytest.raises(FileExistsError):
         install_from_local(source, dataset)
+
+
+def test_install_from_folder_of_archives_picks_the_category_archive(tmp_path: Path) -> None:
+    downloads = tmp_path / "downloads"
+    downloads.mkdir()
+    for category in ("leather", "carpet"):
+        make_fake_category(tmp_path / "src" / category, "mvtec_ad")
+        with tarfile.open(downloads / f"{category}.tar.xz", "w:xz") as tar:
+            tar.add(tmp_path / "src" / category, arcname=category)
+    dataset = DatasetConfig(name="mvtec_ad", category="carpet", data_root=tmp_path / "data")
+
+    target = install_from_local(downloads, dataset)
+
+    assert target == tmp_path / "data" / "MVTec_AD" / "carpet"
+    assert missing_dirs(target, "mvtec_ad") == []

@@ -1,7 +1,7 @@
 """Put dataset files in place and check their folder layout.
 
-MVTec AD 2 needs a web form, so it is always installed from a local path the user
-downloaded. MVTec AD can be downloaded from the official MVTec host.
+Both MVTec datasets are downloaded by the user through the web forms on the MVTec
+website, so they are always installed from a local path.
 """
 
 import shutil
@@ -43,17 +43,26 @@ def find_category_dir(search_root: Path, category: str) -> Path:
     candidates += [p for p in search_root.rglob(category) if p.is_dir()]
     matches = sorted({p for p in candidates if (p / "train" / "good").is_dir()})
     if len(matches) != 1:
+        top = sorted(p.name for p in search_root.iterdir())[:20]
         raise FileNotFoundError(
-            f"Expected one '{category}/train/good' folder under {search_root}, found {len(matches)}"
+            f"Expected one '{category}/train/good' folder under {search_root}, "
+            f"found {len(matches)}. Top-level entries: {top}"
         )
     return matches[0]
+
+
+def _category_archive(folder: Path, category: str) -> Path | None:
+    """Return ``<folder>/<category>.tar*`` if exactly one such archive exists."""
+    archives = sorted(folder.glob(f"{category}.tar*"))
+    return archives[0] if len(archives) == 1 else None
 
 
 def install_from_local(source: Path, dataset: DatasetConfig) -> Path:
     """Link a downloaded folder, or extract a downloaded archive, into ``dataset.category_dir``.
 
-    A folder is symlinked (no copy of several GB). A ``.tar``/``.tar.gz``/``.tar.xz``
-    archive is extracted with the safe ``data`` filter.
+    ``source`` can be an unpacked folder (symlinked, no copy of several GB), a
+    ``.tar``/``.tar.gz``/``.tar.xz`` archive, or a folder holding ``<category>.tar*``.
+    Archives are extracted with the safe ``data`` filter.
     """
     target = dataset.category_dir
     if target.exists() or target.is_symlink():
@@ -61,8 +70,12 @@ def install_from_local(source: Path, dataset: DatasetConfig) -> Path:
     target.parent.mkdir(parents=True, exist_ok=True)
 
     if source.is_dir():
-        target.symlink_to(find_category_dir(source, dataset.category).resolve())
-    elif tarfile.is_tarfile(source):
+        archive = _category_archive(source, dataset.category)
+        if archive is None:
+            target.symlink_to(find_category_dir(source, dataset.category).resolve())
+            return target
+        source = archive
+    if tarfile.is_tarfile(source):
         with tempfile.TemporaryDirectory(dir=target.parent) as tmp:
             with tarfile.open(source) as archive:
                 archive.extractall(tmp, filter="data")
@@ -70,15 +83,3 @@ def install_from_local(source: Path, dataset: DatasetConfig) -> Path:
     else:
         raise ValueError(f"{source} is neither a folder nor a tar archive")
     return target
-
-
-def download_mvtec_ad(dataset: DatasetConfig) -> Path:
-    """Download MVTec AD from the official MVTec host, using anomalib's URL and checksum.
-
-    anomalib ships one archive with all 15 categories (about 5 GB).
-    """
-    from anomalib.data.datamodules.image.mvtecad import DOWNLOAD_INFO
-    from anomalib.data.utils import download_and_extract
-
-    download_and_extract(dataset.root, DOWNLOAD_INFO)
-    return dataset.category_dir

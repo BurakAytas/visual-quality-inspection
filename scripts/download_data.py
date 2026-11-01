@@ -1,11 +1,11 @@
 """Put one dataset category in place and check its layout.
 
-Examples:
-    # MVTec AD 2: download it yourself from the MVTec website, then point here
-    python scripts/download_data.py --config configs/fabric.yaml --source /path/to/fabric.tar.xz
+Download the data yourself through the MVTec web forms, then point here.
+--source can be the archive, the unpacked folder, or a folder holding <category>.tar*.
 
-    # MVTec AD: download from the official MVTec host (needs the [train] extra)
-    python scripts/download_data.py --config configs/leather.yaml
+Examples:
+    python scripts/download_data.py --config configs/fabric.yaml --source downloads/fabric.tar.gz
+    python scripts/download_data.py --config configs/leather.yaml --source downloads/
 """
 
 import argparse
@@ -13,7 +13,7 @@ import sys
 from pathlib import Path
 
 from vqi.config import load_config
-from vqi.dataset_files import download_mvtec_ad, install_from_local, missing_dirs
+from vqi.dataset_files import install_from_local, missing_dirs
 
 
 def main() -> int:
@@ -21,7 +21,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", required=True, type=Path)
     parser.add_argument(
-        "--source", type=Path, help="Downloaded folder or .tar(.xz/.gz) archive (required for AD 2)"
+        "--source", type=Path, help="Downloaded archive, unpacked folder, or folder of archives"
     )
     args = parser.parse_args()
 
@@ -30,12 +30,10 @@ def main() -> int:
         print(f"Found {dataset.category_dir}, checking layout only.")
     elif args.source is not None:
         install_from_local(args.source, dataset)
-    elif dataset.name == "mvtec_ad":
-        download_mvtec_ad(dataset)
     else:
         print(
-            "MVTec AD 2 needs a manual download (web form on the MVTec website). "
-            "Pass the downloaded file with --source.",
+            "Download the data through the web form on the MVTec website, "
+            "then pass it with --source.",
             file=sys.stderr,
         )
         return 2
