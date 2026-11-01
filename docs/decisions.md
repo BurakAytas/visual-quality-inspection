@@ -154,7 +154,7 @@ a string column as `NaN` instead of `None`, so good images without a mask get
 run then finished for both dataset layouts (MVTec AD 2, and MVTec AD with a train-based
 validation split) and `scripts/evaluate.py` produced the table.
 
-### D21. torch installed from the CUDA 12.6 build in notebooks
+### D21. torch installed from the CUDA 12.6 build in notebooks (reverted, see D23)
 The default PyPI wheel of torch 2.14.1 is built for CUDA 13, which needs a recent GPU
 driver. Notebooks install `torch==2.14.1` from the official PyTorch CUDA 12.6 index (same
 version, older driver requirement) and then stop with an assertion if no GPU is visible,
@@ -167,3 +167,12 @@ ran on Python 3.13, where that wheel exists, so it did not catch this. torchvisi
 was released together with torch 2.14.1 and has Python 3.12 Linux wheels on both indexes.
 Lesson: check pins against the notebook's Python version, not the local one. All other
 pinned binary packages were checked for Python 3.12 Linux wheels.
+
+### D23. Notebook installs torch and torchvision from PyPI only (second Colab failure)
+The second Colab run failed with a torch/torchvision CUDA mismatch. Colab now ships Python
+3.13 with torch 2.14.1 built for CUDA 13 preinstalled. The notebook's
+`pip install torch==2.14.1 --index-url .../cu126` saw "2.14.1 already installed", skipped
+torch, and installed the CUDA 12.6 build of torchvision next to the CUDA 13 torch. D21 is
+reverted: both now come from PyPI (same CUDA 13 build), which Colab's driver supports. The
+install step now imports torchvision as well as torch, so a mismatch stops the run there.
+All pinned binary packages were checked for Python 3.13 Linux wheels.
