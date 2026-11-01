@@ -9,6 +9,8 @@ datasets/
 *.xml
 weights/
 lightning_logs/
+runs/
+results_*.zip
 
 # Python
 __pycache__/
