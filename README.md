@@ -30,7 +30,7 @@ pytest
 Put a dataset in place (details in [DATA.md](DATA.md)):
 
 ```bash
-python scripts/download_data.py --config configs/leather.yaml
+python scripts/download_data.py --config configs/leather.yaml --source /path/to/leather.tar.xz
 ```
 
 ## Project status

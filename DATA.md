@@ -6,7 +6,7 @@ focus. No dataset file is committed to this repository (`data/` is in `.gitignor
 | Dataset | Categories used | Role | Source |
 |---|---|---|---|
 | MVTec AD 2 | `fabric` | main anomaly-detection set | official MVTec website, manual download |
-| MVTec AD | `leather`, `carpet` | secondary set; `leather` defect folders give defect-type labels | official MVTec host |
+| MVTec AD | `leather`, `carpet` | secondary set; `leather` defect folders give defect-type labels | official MVTec website, manual download |
 
 Only official MVTec sources are used, no mirrors.
 
@@ -63,37 +63,30 @@ project never uses them for metrics.
 
 ## How to get the data
 
-### MVTec AD 2 (manual, web form)
+Both datasets are downloaded by you through the web forms on the official MVTec website
+(name, email, non-commercial acknowledgment). The code never downloads them.
 
-1. Open the MVTec AD 2 page on the official MVTec website, fill in the form (name, email,
-   non-commercial acknowledgment) and download the `fabric` archive.
-2. Make it available to the notebook:
-   - **Colab:** upload the archive to Google Drive as `MyDrive/datasets/mvtec_ad_2/fabric.tar.gz`
-     (the notebook default; edit the path in step 3 if yours differs).
-     The notebook mounts Drive at `/content/drive`.
-   - **Kaggle:** create a private Kaggle Dataset from the archive. It appears read-only under
-     `/kaggle/input/<your-dataset-name>/` (Kaggle may unpack it; both forms work).
-3. Install it (the script accepts the archive or an already-unpacked folder and finds the
-   `fabric` folder inside):
+1. MVTec AD 2: <https://www.mvtec.com/research-teaching/datasets/mvtec-ad-2>, archive
+   for `fabric`.
+2. MVTec AD: <https://www.mvtec.com/research-teaching/datasets/mvtec-ad>, archives for
+   `leather` and `carpet`.
+3. Upload them where the notebook expects them (or edit the two paths in its step 3):
 
-```bash
-python scripts/download_data.py --config configs/fabric.yaml --source /path/to/archive-or-folder
-```
+| Archive | Colab (Google Drive) | Kaggle (private dataset) |
+|---|---|---|
+| MVTec AD 2 `fabric` | `MyDrive/datasets/mvtec_ad_2/fabric.tar.gz` | `/kaggle/input/mvtec-ad-2/` |
+| MVTec AD `leather`, `carpet` | `MyDrive/datasets/mvtec_ad/` (`leather.tar.xz`, `carpet.tar.xz`) | `/kaggle/input/mvtec-ad/` |
 
-A folder source is symlinked, not copied. An archive is extracted into `data/`.
-
-### MVTec AD (`leather`, `carpet`)
+4. Install each category (the notebook does this):
 
 ```bash
-pip install -e ".[train]"
-python scripts/download_data.py --config configs/leather.yaml
-python scripts/download_data.py --config configs/carpet.yaml
+python scripts/download_data.py --config configs/fabric.yaml --source /path/to/fabric.tar.gz
+python scripts/download_data.py --config configs/leather.yaml --source /path/to/mvtec_ad/
+python scripts/download_data.py --config configs/carpet.yaml --source /path/to/mvtec_ad/
 ```
 
-This downloads the official MVTec AD archive (all 15 categories, about 5 GB) from MVTec's
-own file share, with the URL and SHA-256 checksum that anomalib 2.7.0 ships. The MVTec AD
-page also offers the download through a web form; fill it in first so the non-commercial
-terms are acknowledged. A manually downloaded archive also works with `--source`.
+`--source` can be an archive, an unpacked folder, or a folder that holds
+`<category>.tar*`. A folder is symlinked, not copied; an archive is extracted into `data/`.
 
 ## Adding another category
 

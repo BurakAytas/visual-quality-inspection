@@ -55,7 +55,7 @@ moves a random part of `train/good` into validation. Validation then has good im
 the same situation as MVTec AD 2, so one threshold policy covers both datasets. Cost: fewer
 training images; the split ratio and seed will be recorded with the results.
 
-### D7. MVTec AD download uses anomalib's official URL and checksum
+### D7. MVTec AD download uses anomalib's official URL and checksum (removed, see D24)
 `scripts/download_data.py` reuses `DOWNLOAD_INFO` from anomalib 2.7.0: the official MVTec
 share on mydrive.ch with a SHA-256 hash. It downloads all 15 categories (about 5 GB) in one
 archive; no per-category URL was used because none could be verified. MVTec AD 2 is never
@@ -176,3 +176,24 @@ torch, and installed the CUDA 12.6 build of torchvision next to the CUDA 13 torc
 reverted: both now come from PyPI (same CUDA 13 build), which Colab's driver supports. The
 install step now imports torchvision as well as torch, so a mismatch stops the run there.
 All pinned binary packages were checked for Python 3.13 Linux wheels.
+
+### D24. Automatic MVTec AD download removed (404 on Colab)
+The MVTec AD URL shipped with anomalib 2.7.0 returned `HTTP Error 404` on Colab; MVTec now
+hands out downloads through a web form, like MVTec AD 2. `download_mvtec_ad` was deleted
+and both datasets are installed from local archives. `--source` also accepts a folder that
+holds `<category>.tar*`, so one Drive folder can serve `leather` and `carpet`. When the
+category folder is not found, the error lists the top-level entries it did see.
+
+### D25. Kaggle detected by `KAGGLE_KERNEL_RUN_TYPE`, not by a `/kaggle` folder
+On the Colab run `os.path.exists("/kaggle")` was `True`, so the notebook used the Kaggle
+paths and could not find the data. Kaggle sets the `KAGGLE_KERNEL_RUN_TYPE` environment
+variable; Colab does not.
+
+### D26. Notebook steps stop on the first error, and the notebook is simulated before release
+With `!python ...` a failed step only printed an error and the next cells kept running,
+so a data failure showed up later as a missing `scores.csv`. Every step now goes through a
+small `run()` helper that raises on a non-zero exit code. Before this version was handed
+over, all code cells were executed on CPU against synthetic archives laid out like the
+Drive upload (`fabric.tar.gz`, `leather.tar.xz`, `carpet.tar.xz`), with a tiny untrained
+backbone in place of the GPU model: install, all three training runs, evaluation and the
+zip finished. Only the GPU check, Drive mount and browser download were stubbed.
