@@ -1,0 +1,25 @@
+{
+  "git_commit": "d7ea3ac513047abd10f664b8e26ca727d03aaab3",
+  "anomalib": "2.7.0",
+  "torch": "2.14.1+cu130",
+  "device": "Tesla T4",
+  "train_seconds": 360.7,
+  "n_train_images": 387,
+  "n_validation_images": 43,
+  "n_test_images": 156,
+  "image_size": 256,
+  "model_params": {
+    "backbone": "wide_resnet50_2",
+    "layers": [
+      "layer2",
+      "layer3"
+    ],
+    "coreset_sampling_ratio": 0.1,
+    "num_neighbors": 9
+  },
+  "seed": 42,
+  "overlay_scale": {
+    "vmin": 26.752826690673828,
+    "vmax": 42.2657356262207
+  }
+}

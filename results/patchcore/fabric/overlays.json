@@ -1,0 +1,92 @@
+[
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_shift_2.jpg",
+    "score": 53.28775405883789
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_shift_3.jpg",
+    "score": 52.537254333496094
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_shift_1.jpg",
+    "score": 46.55902862548828
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_overexposed.jpg",
+    "score": 46.42072296142578
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_underexposed.jpg",
+    "score": 46.32341003417969
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_regular.jpg",
+    "score": 46.267574310302734
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_007_shift_2.jpg",
+    "score": 45.4348030090332
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_013_shift_2.jpg",
+    "score": 44.01513671875
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_010_underexposed.jpg",
+    "score": 36.34130096435547
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_010_regular.jpg",
+    "score": 36.6474609375
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_010_shift_2.jpg",
+    "score": 36.95157241821289
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_004_underexposed.jpg",
+    "score": 36.95926284790039
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_010_overexposed.jpg",
+    "score": 37.18775177001953
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_004_regular.jpg",
+    "score": 37.2149543762207
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_004_overexposed.jpg",
+    "score": 37.22974395751953
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_010_shift_1.jpg",
+    "score": 37.30949401855469
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_public_good_005_shift_3.jpg",
+    "score": 42.9169807434082
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_public_good_005_shift_2.jpg",
+    "score": 42.793487548828125
+  }
+]

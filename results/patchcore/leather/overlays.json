@@ -1,0 +1,57 @@
+[
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_000.jpg",
+    "score": 85.27186584472656
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_014.jpg",
+    "score": 84.97765350341797
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_005.jpg",
+    "score": 84.9327392578125
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_015.jpg",
+    "score": 83.98709869384766
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_013.jpg",
+    "score": 80.52133178710938
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_cut_007.jpg",
+    "score": 78.06039428710938
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_006.jpg",
+    "score": 77.29803466796875
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_017.jpg",
+    "score": 75.97024536132812
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_000.jpg",
+    "score": 30.251474380493164
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_031.jpg",
+    "score": 28.549985885620117
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_030.jpg",
+    "score": 28.451107025146484
+  }
+]

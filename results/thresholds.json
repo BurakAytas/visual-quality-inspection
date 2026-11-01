@@ -1,0 +1,26 @@
+{
+  "patchcore/carpet": {
+    "n_validation_images": 56,
+    "quantile": 0.99,
+    "score": "raw anomaly score (anomalib normalization disabled)",
+    "target_false_alarm_rate": 0.01,
+    "threshold": 32.47767639160156,
+    "validation_false_alarm_rate": 0.0
+  },
+  "patchcore/fabric": {
+    "n_validation_images": 43,
+    "quantile": 0.99,
+    "score": "raw anomaly score (anomalib normalization disabled)",
+    "target_false_alarm_rate": 0.01,
+    "threshold": 42.2657356262207,
+    "validation_false_alarm_rate": 0.0
+  },
+  "patchcore/leather": {
+    "n_validation_images": 49,
+    "quantile": 0.99,
+    "score": "raw anomaly score (anomalib normalization disabled)",
+    "target_false_alarm_rate": 0.01,
+    "threshold": 28.39045524597168,
+    "validation_false_alarm_rate": 0.0
+  }
+}

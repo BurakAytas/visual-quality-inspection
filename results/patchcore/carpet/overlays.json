@@ -1,0 +1,62 @@
+[
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_hole_007.jpg",
+    "score": 70.214599609375
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_hole_008.jpg",
+    "score": 68.87518310546875
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_cut_003.jpg",
+    "score": 68.7061996459961
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_color_008.jpg",
+    "score": 68.23768615722656
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_cut_006.jpg",
+    "score": 68.11835479736328
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_cut_015.jpg",
+    "score": 66.88504028320312
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_cut_002.jpg",
+    "score": 65.31307220458984
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_thread_008.jpg",
+    "score": 65.22103118896484
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_metal_contamination_000.jpg",
+    "score": 25.766067504882812
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_thread_018.jpg",
+    "score": 30.55487632751465
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_006.jpg",
+    "score": 34.64982604980469
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_009.jpg",
+    "score": 33.746238708496094
+  }
+]
