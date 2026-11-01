@@ -11,6 +11,7 @@ Example:
 import argparse
 import csv
 import json
+import re
 from pathlib import Path
 
 import matplotlib
@@ -27,6 +28,16 @@ from vqi.threshold import load_threshold
 COLOURS = {"validation good": "#2a78d6", "test good": "#1baf7a", "test defective": "#eb6834"}
 INK = "#3b3b3b"
 
+# MVTec AD 2 photographs each test part under several lights: "000_regular.png",
+# "000_overexposed.png", "000_shift_2.png", ... These are one part, not six samples.
+LIGHTING_SUFFIX = re.compile(r"_(regular|overexposed|underexposed|shift_\d+)$")
+
+
+def physical_part(image: str) -> str:
+    """Identify the physical part an image shows, e.g. ``fabric/test_public/bad/000``."""
+    path = Path(image)
+    return str(path.parent / LIGHTING_SUFFIX.sub("", path.stem))
+
 
 def read_scores(path: Path) -> dict[str, np.ndarray]:
     """Split the scores CSV into validation scores, test scores and test labels."""
@@ -38,6 +49,7 @@ def read_scores(path: Path) -> dict[str, np.ndarray]:
         "val_scores": np.array([float(r["score"]) for r in val]),
         "test_scores": np.array([float(r["score"]) for r in test]),
         "test_labels": np.array([int(r["label"]) for r in test]),
+        "test_parts": np.array([physical_part(r["image"]) for r in test]),
     }
 
 
@@ -91,6 +103,7 @@ def evaluate(config: Config) -> tuple[str, dict]:
         config.evaluation.fixed_false_alarm_rate,
         config.evaluation.bootstrap_samples,
         config.seed,
+        groups=scores["test_parts"],
     )
     pixel = json.loads((out_dir / "pixel_metrics.json").read_text(encoding="utf-8"))
     plot_scores(out_dir / "score_distribution.png", key, scores, threshold)
@@ -113,8 +126,9 @@ def markdown_table(results: dict) -> str:
     """Metrics table with 95% bootstrap CIs."""
     lines = [
         "| Model / category | Image AUROC | F1 | Precision | Recall | False-alarm rate | Miss rate "
-        "| Miss rate @ fixed FAR | AU-PRO 0.3 | AU-PRO 0.05 | Val good | Test good / defective |",
-        "|---" * 12 + "|",
+        "| Miss rate @ fixed FAR | AU-PRO 0.3 | AU-PRO 0.05 | Val good | Test good / defective "
+        "| Test parts |",
+        "|---" * 13 + "|",
     ]
     for key, r in sorted(results.items()):
         m = r["image"]
@@ -123,7 +137,7 @@ def markdown_table(results: dict) -> str:
             f"| {fmt(m['recall'])} | {fmt(m['false_alarm_rate'])} | {fmt(m['miss_rate'])} "
             f"| {fmt(m['miss_rate_at_fixed_far'])} | {r['pixel']['pixel_aupro_0.3']:.3f} "
             f"| {r['pixel']['pixel_aupro_0.05']:.3f} | {r['n_validation_images']} "
-            f"| {m['n_test_good']} / {m['n_test_defective']} |"
+            f"| {m['n_test_good']} / {m['n_test_defective']} | {m['n_test_parts']} |"
         )
     return "\n".join(lines) + "\n"
 

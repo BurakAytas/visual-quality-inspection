@@ -51,18 +51,25 @@ def bootstrap_ci(
     metric: MetricFn,
     n_samples: int,
     seed: int,
+    groups: np.ndarray | None = None,
 ) -> tuple[float, float]:
     """95% percentile interval of ``metric`` over stratified bootstrap resamples.
 
-    Good and defective images are resampled separately so every resample keeps
-    the original class counts. Thresholds stay fixed; only the test images vary.
+    Good and defective parts are resampled separately so every resample keeps the
+    original class balance. ``groups`` marks images of the same physical part (for
+    example one part photographed under several lights); such images are drawn
+    together, because they are not independent samples. Thresholds stay fixed;
+    only the test parts vary.
     """
+    groups = np.arange(len(scores)) if groups is None else np.asarray(groups)
     rng = np.random.default_rng(seed)
-    good = np.flatnonzero(labels == 0)
-    bad = np.flatnonzero(labels == 1)
+    members = {g: np.flatnonzero(groups == g) for g in np.unique(groups)}
+    good = [g for g, idx in members.items() if labels[idx[0]] == 0]
+    bad = [g for g, idx in members.items() if labels[idx[0]] == 1]
     values = []
     for _ in range(n_samples):
-        idx = np.concatenate([rng.choice(good, size=good.size), rng.choice(bad, size=bad.size)])
+        drawn = [*rng.choice(good, size=len(good)), *rng.choice(bad, size=len(bad))]
+        idx = np.concatenate([members[g] for g in drawn])
         values.append(metric(scores[idx], labels[idx]))
     low, high = np.percentile(values, [2.5, 97.5])
     return float(low), float(high)
@@ -75,12 +82,20 @@ def summarize(
     fixed_false_alarm_rate: float,
     bootstrap_samples: int,
     seed: int,
+    groups: np.ndarray | None = None,
 ) -> dict:
-    """All image-level test metrics: value and 95% CI for each, plus raw counts."""
+    """All image-level test metrics: value and 95% CI for each, plus raw counts.
+
+    ``groups`` (optional) gives the physical part of each image; see ``bootstrap_ci``.
+    """
     scores = np.asarray(scores, dtype=float)
     labels = np.asarray(labels, dtype=int)
     if set(np.unique(labels)) != {0, 1}:
         raise ValueError("labels must contain both good (0) and defective (1) images")
+    groups = np.arange(len(scores)) if groups is None else np.asarray(groups)
+    for g in np.unique(groups):
+        if len(set(labels[groups == g])) != 1:
+            raise ValueError(f"group {g!r} mixes good and defective images")
 
     def at_threshold(name: str) -> MetricFn:
         return lambda s, y: operating_point(s, y, threshold)[name]
@@ -99,7 +114,7 @@ def summarize(
     summary: dict = {
         name: {
             "value": fn(scores, labels),
-            "ci95": bootstrap_ci(scores, labels, fn, bootstrap_samples, seed),
+            "ci95": bootstrap_ci(scores, labels, fn, bootstrap_samples, seed, groups),
         }
         for name, fn in metrics.items()
     }
@@ -107,5 +122,6 @@ def summarize(
     summary["counts"] = {k: point[k] for k in ("tp", "fp", "fn", "tn")}
     summary["n_test_good"] = int((labels == 0).sum())
     summary["n_test_defective"] = int((labels == 1).sum())
+    summary["n_test_parts"] = len(np.unique(groups))
     summary["fixed_false_alarm_rate"] = fixed_false_alarm_rate
     return summary

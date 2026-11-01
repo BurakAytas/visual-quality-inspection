@@ -59,3 +59,26 @@ def test_summary_contents() -> None:
 def test_summary_needs_both_classes() -> None:
     with pytest.raises(ValueError):
         summarize(SCORES, np.zeros(8, dtype=int), 0.5, 0.01, 10, seed=0)
+
+
+def test_grouped_bootstrap_is_wider_when_images_repeat_one_part() -> None:
+    # 10 good + 10 defective parts, each photographed 6 times with the same score.
+    rng = np.random.default_rng(0)
+    part_scores = np.concatenate([rng.normal(0, 1, 10), rng.normal(1, 1, 10)])
+    part_labels = np.repeat([0, 1], 10)
+    scores = np.repeat(part_scores, 6)
+    labels = np.repeat(part_labels, 6)
+    groups = np.repeat(np.arange(20), 6)
+    recall = lambda s, y: operating_point(s, y, 0.5)["recall"]  # noqa: E731
+
+    naive = bootstrap_ci(scores, labels, recall, 500, seed=0)
+    grouped = bootstrap_ci(scores, labels, recall, 500, seed=0, groups=groups)
+    assert grouped[1] - grouped[0] > 1.5 * (naive[1] - naive[0])
+
+
+def test_summary_counts_parts_and_rejects_mixed_groups() -> None:
+    groups = np.array([0, 0, 1, 1, 2, 2, 3, 3])
+    summary = summarize(SCORES, LABELS, 0.5, 0.01, 50, seed=0, groups=groups)
+    assert summary["n_test_parts"] == 4
+    with pytest.raises(ValueError, match="mixes"):
+        summarize(SCORES, LABELS, 0.5, 0.01, 50, seed=0, groups=np.zeros(8))
