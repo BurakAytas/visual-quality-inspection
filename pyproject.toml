@@ -31,6 +31,7 @@ train = [
 # Model export and CPU inference benchmarks.
 export = [
     "onnx==1.23.2",
+    "onnxscript==0.7.2",  # torch's ONNX exporter needs it (anomalib raises without it)
     "onnxruntime==1.31.1",
     "openvino==2026.4.1",
     "nncf==3.4.0",
