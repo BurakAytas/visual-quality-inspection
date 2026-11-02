@@ -140,6 +140,12 @@ python scripts/line_simulator.py --folder incoming    # posts each new image in 
 python scripts/daily_report.py                        # CSV per day: inspected, NOK, review
 ```
 
+Or both in containers (CPU only, no torch in the image); drop images into `incoming/`:
+
+```bash
+VQI_GIT_COMMIT=$(git rev-parse --short HEAD) docker compose up --build
+```
+
 Settings live in `configs/serve/leather.yaml`; any key can be overridden with an
 environment variable such as `VQI_MODEL_FILE`. The model comes from
 `scripts/export_model.py` and is never committed.
