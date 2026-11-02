@@ -67,6 +67,9 @@ def test_nok_part_gets_its_defect_type_in_the_answer_and_the_log(log: DecisionLo
     body = client.post("/inspect", files={"file": ("a.png", png_bytes())}).json()
     assert (body["defect_type"], body["defect_probability"]) == ("fold", 0.75)
     assert log.daily_defect_types()[0]["defect_type"] == "fold"
+    daily = client.get("/daily").json()
+    assert daily["days"][0]["nok"] == 1
+    assert daily["defect_types"][0]["defect_type"] == "fold"
 
 
 def test_scores_near_the_threshold_reach_the_review_queue(log: DecisionLog) -> None:

@@ -63,6 +63,11 @@ def create_app(inspector: Inspector, log: DecisionLog) -> FastAPI:
         """Newest decisions waiting for an operator."""
         return log.review_queue(limit)
 
+    @app.get("/daily")
+    def daily() -> dict[str, list[dict[str, Any]]]:
+        """Per UTC day: counts and defect rate, and NOK parts per defect type."""
+        return {"days": log.daily_summary(), "defect_types": log.daily_defect_types()}
+
     return app
 
 
