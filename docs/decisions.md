@@ -329,3 +329,47 @@ to 10 epochs: on a free Colab GPU with two CPU cores, decoding the large MVTec A
 for every step is slow, and the PatchCore results already sat on Drive (D37), so only
 EfficientAD had to be rerun. This is a compute budget, about 2,000 to 4,000 steps against
 the paper's 70,000, and the results are reported as such.
+
+### D39. Perturbations use `functools.partial`, not lambdas (bug found on Windows)
+On the user's Windows machine the robustness step crashed with
+`Can't get local object 'perturbations.<locals>.<lambda>'`: Windows starts data-loader
+workers by spawning new processes and pickles what they need, and lambdas cannot be
+pickled. Linux forks workers, so neither CI nor the CPU simulation saw it. `perturbations`
+now returns `functools.partial` objects of module-level functions; a new test pickles every
+perturbation and checks the restored one gives the same image (it fails on the old code).
+The local run used `num_workers: 0` as a workaround (not committed); that only changes
+loading speed, not results.
+
+### D40. Phase 3 results: trained on a local RTX 3070 Ti
+Colab's free GPU quota ran out, so Phase 3 ran on the user's Windows 11 PC (RTX 3070 Ti,
+torch 2.14.1+cu130, commit `2fde1ef`, all six runs). The zip was made with
+`Compress-Archive`, which stores Windows path separators; it was unpacked with them
+converted, and six gallery images left over from the Phase 2 run in the same folder were
+dropped (only images listed in each run's `overlays.json` are kept). All metrics were
+recomputed on CPU here and matched the Windows output exactly.
+
+PatchCore was retrained in this run, with the same code and seed as Phase 2, and its
+numbers moved: `fabric` AUROC 0.657 (Colab T4) became 0.751, `leather` test false-alarm
+rate 9.4% became 18.8%, `carpet` 7.1% became 10.7%. Each new value lies inside the old
+95% interval and the other way round, so this is run-to-run variation (GPU and library
+non-determinism), not a code change. The Phase 2 metrics are kept in
+`results/history/phase2_colab_t4/` so the README can cite both.
+
+### D41. EfficientAD lost to PatchCore at this budget (negative result)
+Image AUROC, EfficientAD vs PatchCore: `fabric` 0.551 vs 0.751, `leather` 0.921 vs 1.000,
+`carpet` 0.990 vs 0.987. At the validation threshold EfficientAD's test false-alarm rate was
+56.1% (`fabric`), 18.8% (`leather`) and 25.0% (`carpet`). Two likely reasons, not tested
+separately: 10 epochs is a small fraction of the paper's 70,000 steps (D38), and
+EfficientAD normalises its maps with quantiles from the same good validation images that
+set the threshold (D32), so validation scores are optimistic. PatchCore stays the model
+for export and the API.
+
+### D42. Robustness: ranking survives, threshold does not
+With the clean threshold kept: PatchCore `leather` AUROC stays 1.000 under every
+perturbation, but its false-alarm rate goes from 18.8% (clean) to 65.6% (brighter), 43.8%
+(noise) and 100% (blur). `carpet` behaves the same way (blur: 92.9% false alarms).
+EfficientAD loses ranking quality as well (`leather` brighter: AUROC 0.463). For a line this
+means: monitor the score distribution of good parts, and recalibrate the threshold after any
+change to optics or lighting. On `fabric` PatchCore blur drops AUROC to 0.549; the
+likely reason (not tested) is that blur removes the fine detail its few caught
+defects depend on.
