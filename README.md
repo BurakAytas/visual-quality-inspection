@@ -3,10 +3,10 @@
 Anomaly detection for visual quality control that learns from good parts only, sets its
 decision threshold from good validation images only, and reports what it misses.
 
-> **Status:** Phases 1 to 3 are done (baseline, metrics, EfficientAD comparison,
-> robustness). Phases 4 to 7 are planned (see [Project status](#project-status)). Every
-> result number in this README is checked against `results/*.json` in CI by
-> `scripts/check_readme_claims.py`.
+> **Status:** Phases 1, 2, 3 and 5 are done (baseline, metrics, EfficientAD comparison,
+> robustness, export and CPU latency). Phases 4, 6 and 7 are planned (see
+> [Project status](#project-status)). Every result number in this README is checked
+> against `results/*.json` in CI by `scripts/check_readme_claims.py`.
 
 ## Problem
 
@@ -93,6 +93,30 @@ more fragile: brighter images drop its leather AUROC to 0.463<!-- claim: results
 More: failure galleries in `results/<model>/<category>/overlays/` (true positives, misses,
 false alarms); decisions and negative results in [`docs/decisions.md`](docs/decisions.md).
 
+## Deployment: export and CPU latency
+
+The PatchCore `leather` model was exported with a fixed input of one camera image
+(1024<!-- claim: results/export/patchcore/leather/export.json#input_size.0 --> x 1024<!-- claim: results/export/patchcore/leather/export.json#input_size.1 --> px; the graph contains the model's own resize and normalisation).
+Every format gets its own threshold from the good validation images, because the exported
+resize differs slightly from training. Latency: CPU only, one image at a time, decoding
+excluded, 10<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.n_warmup --> warm-up runs, then all 124<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.n_timed --> test images; measured on an Intel 12th-gen desktop
+CPU with 12<!-- claim: results/export/patchcore/leather/export.json#environment.logical_cores --> logical cores (details in `export.json`).
+
+<!-- results:start -->
+| Format | Size (MB) | Median ms/image | p95 ms/image | Image AUROC | False-alarm rate |
+|---|---|---|---|---|---|
+| PyTorch FP32 (baseline) | - | 315.7<!-- claim: results/export/patchcore/leather/export.json#formats.torch_fp32.latency.median_ms --> | 438.5<!-- claim: results/export/patchcore/leather/export.json#formats.torch_fp32.latency.p95_ms --> | 1.000<!-- claim: results/export/patchcore/leather/export.json#formats.torch_fp32.image.image_auroc.value --> | 0.125<!-- claim: results/export/patchcore/leather/export.json#formats.torch_fp32.image.false_alarm_rate.value --> |
+| ONNX Runtime FP32 | 213<!-- claim: results/export/patchcore/leather/export.json#formats.onnx_fp32.size_mb --> | 229.8<!-- claim: results/export/patchcore/leather/export.json#formats.onnx_fp32.latency.median_ms --> | 302.7<!-- claim: results/export/patchcore/leather/export.json#formats.onnx_fp32.latency.p95_ms --> | 1.000<!-- claim: results/export/patchcore/leather/export.json#formats.onnx_fp32.image.image_auroc.value --> | 0.125<!-- claim: results/export/patchcore/leather/export.json#formats.onnx_fp32.image.false_alarm_rate.value --> |
+| OpenVINO FP32 | 213<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.size_mb --> | 195.5<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.latency.median_ms --> | 251.2<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.latency.p95_ms --> | 1.000<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.image.image_auroc.value --> | 0.125<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.image.false_alarm_rate.value --> |
+| OpenVINO FP16 | 106<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp16.size_mb --> | 192.1<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp16.latency.median_ms --> | 231.9<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp16.latency.p95_ms --> | 1.000<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp16.image.image_auroc.value --> | 0.125<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp16.image.false_alarm_rate.value --> |
+| OpenVINO INT8 | 171<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.size_mb --> | 167.4<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.median_ms --> | 227.5<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.p95_ms --> | 1.000<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.image.image_auroc.value --> | 0.125<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.image.false_alarm_rate.value --> |
+<!-- results:end -->
+
+Every format keeps the ranking of the PyTorch model. OpenVINO INT8 is the fastest, but the
+gain over FP32 is modest and the file shrinks less than INT8 suggests: the CNN weights are
+quantized, while PatchCore's memory bank of patch features and the nearest-neighbour
+search stay in floating point and are likely the larger cost at this input size.
+
 ## Demo data
 
 Public datasets are used as examples only (non-commercial licence, see [DATA.md](DATA.md)):
@@ -129,7 +153,7 @@ python scripts/evaluate.py --model configs/models/patchcore.yaml configs/leather
 | 2 | PatchCore baseline, validation-only threshold, metrics, failure overlays | done |
 | 3 | EfficientAD comparison, robustness to perturbations | done |
 | 4 | Defect-type classifier (ResNet18 vs HOG + SVM), hybrid pipeline | planned |
-| 5 | ONNX / OpenVINO export, CPU latency | planned |
+| 5 | ONNX / OpenVINO export, CPU latency | done |
 | 6 | FastAPI line integration, SQLite decision log, Docker | planned |
 | 7 | Operator panel, final README | planned |
 
