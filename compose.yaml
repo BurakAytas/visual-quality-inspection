@@ -1,0 +1,31 @@
+# The inspection API and a simulated camera that posts every image dropped into incoming/.
+#   VQI_GIT_COMMIT=$(git rev-parse --short HEAD) docker compose up --build
+# Needs the exported model in exports/ (scripts/export_model.py); decisions go to logs/.
+x-build: &build
+  context: .
+  args:
+    VQI_GIT_COMMIT: ${VQI_GIT_COMMIT:-unknown}
+
+services:
+  api:
+    build: *build
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./exports:/app/exports:ro
+      - ./results:/app/results:ro
+      - ./logs:/app/logs
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/health').raise_for_status()"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  line:
+    build: *build
+    command: ["python", "scripts/line_simulator.py", "--folder", "/app/incoming", "--url", "http://api:8000"]
+    volumes:
+      - ./incoming:/app/incoming:ro
+    depends_on:
+      api:
+        condition: service_healthy

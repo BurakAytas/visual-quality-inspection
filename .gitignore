@@ -37,3 +37,5 @@ dist/
 # Notebook checkpoints and local secrets
 .ipynb_checkpoints/
 .env
+# Folder the simulated camera watches (compose.yaml)
+incoming/

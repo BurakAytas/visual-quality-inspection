@@ -1,0 +1,8 @@
+# Only pyproject.toml, README.md, src/, configs/ and scripts/ go into the image.
+*
+!pyproject.toml
+!README.md
+!src/
+!configs/
+!scripts/
+**/__pycache__
