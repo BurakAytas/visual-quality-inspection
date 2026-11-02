@@ -526,10 +526,8 @@ So D48's explanation, that the memory bank and nearest-neighbour search stay in 
 point, is wrong: they were quantized, and the modest INT8 speed-up has to be explained
 again once the export is fixed. The API now serves OpenVINO FP32 (threshold and band in
 D49), and `test_anomaly_map_marks_the_defects` requires the map of every defect in the
-golden set to exceed the threshold; it fails on the current INT8 model. The fix is to keep
-the PatchCore head (from the memory-bank matmul to the outputs) out of quantization with
-NNCF's `IgnoredScope`, then export and benchmark INT8 again; that reruns part of Phase 5
-and waits for approval.
+golden set to exceed the threshold; it failed on that INT8 model. The fix, keeping the
+PatchCore head out of quantization, is D52.
 
 ### D51. Empty uploads, and a stale `.pyc` in mutation checks
 An empty upload reached `cv2.imdecode`, which raised `cv2.error (-215:Assertion failed)
@@ -541,3 +539,36 @@ length as the original and was restored within the same second. Python reused th
 `.pyc` (it compares source size and modification time in seconds), so the test ran the
 wrong code. Mutation checks now run with `PYTHONDONTWRITEBYTECODE=1` after deleting
 `__pycache__`. The code under test was correct; only the check was misleading.
+
+### D52. INT8 with the PatchCore head in floating point: correct maps, twice the false alarms
+`quantize_openvino_int8` now passes an NNCF `IgnoredScope` with every op from the first
+MatMul against the memory bank to the outputs (`vqi.export.patchcore_head`, 51 ops in the
+leather model), so only the CNN in front of the search is quantized. The re-export has no
+FakeQuantize in the head. Its anomaly maps are right again: on six golden defects their
+correlation with the FP32 maps is at least 0.994 and every peak is far above the INT8
+threshold. The largest score difference to FP32 over all validation and test images fell
+from 24.36 to 8.35.
+
+It is still not good enough to serve. The quantized features lower the scores on average,
+but not uniformly, the threshold drops to 29.628 (FP32 30.399), and on the test good parts
+INT8 raises false alarms on 8 of 32 (25.0%) where FP32 raises 4 (12.5%); AUROC stays
+1.000. For about 13% less latency that is a bad trade on a line, so the API stays on FP32.
+Recalibrating or quantization-aware training could close the gap; neither was tried (one
+attempt was agreed).
+
+The fix meant rerunning `export_model.py`. Training is deterministic on this machine: every
+non-INT8 score is identical to Phase 5, so thresholds, the golden set and the served model
+did not change. Only the score CSVs changed further, to the category paths of D48. The
+first rerun ran while Docker Desktop's virtual machine was up and timed every format 17 to
+57% slower than Phase 5, unevenly; it was discarded and the export run again with Docker
+closed. Clean medians: PyTorch 286.7 ms, ONNX Runtime 218.0, OpenVINO FP32 177.3, FP16
+184.9, INT8 154.4. These are lower than Phase 5's on the same PC, the usual run-to-run
+spread of a desktop, which is why formats are only compared within one run. INT8 is now
+142 MB instead of 171, as the memory bank stays in FP32 and the earlier weight compression
+of the search is gone.
+
+The Docker image is 1.65 GB, over the few hundred megabytes hoped for. It holds no torch;
+the bulk is the OpenVINO runtime, OpenCV and the SciPy, pandas and pyarrow stack that
+scikit-learn, matplotlib and Streamlit pull in (in the Windows venv the largest of these are
+openvino 248 MB, scipy 115, OpenCV 113, pyarrow 90 and pandas 70). Shrinking it would
+mean a separate API extra without Streamlit and matplotlib; not done.

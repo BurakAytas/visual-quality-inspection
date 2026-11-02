@@ -14,7 +14,8 @@ Two scripts stand in for the line around the API. `scripts/line_simulator.py` wa
 folder like a camera output directory and posts each new image once, oldest first.
 `scripts/daily_report.py` turns the log into a CSV with one row per day: parts inspected,
 NOK, flagged for review, and the defect rate. A Dockerfile and `compose.yaml` run the API
-and the simulator together on a CPU, with the exported model mounted as a volume.
+and the simulator together on a CPU, with the exported model mounted as a volume; it was
+tested end to end with `docker compose up --build`.
 
 A golden set of 11 leather images (`tests/golden/leather_openvino_fp32.json`) pins each
 image's score, decision and review flag, checks the plain runtime against anomalib's
@@ -48,7 +49,11 @@ calibrated on good images only, which clipped the map below the threshold. The i
 is taken before that node, so the Phase 5 metrics did not show it, and the explanation
 written in Phase 5 (that the search stays in floating point) was wrong. The API now serves
 OpenVINO FP32, a test fails if a defect's map does not reach the threshold, and D48 carries
-a correction (D50).
+a correction (D50). Keeping the PatchCore head out of quantization fixed the maps, but the
+fixed INT8 model raises twice the false alarms of FP32 on the test good parts, so FP32 stays
+in service (D52). The first re-export was timed while Docker Desktop's virtual machine was
+running and every format came out slower, unevenly; it was measured again with Docker
+closed.
 
 An empty upload crashed `cv2.imdecode` with an assertion and became a server error; it is
 now a 400 like any unreadable image. While checking that tests fail when their target
@@ -61,6 +66,7 @@ The exported model now has a working line integration: an API that decides, expl
 heatmap, flags uncertain parts and logs everything, plus a simulated camera and a daily
 report. Building it exposed a real defect in the INT8 export that the Phase 5 metrics had
 missed, which is the strongest argument for testing the whole output of a model, not only
-its headline score. Fixing INT8 means excluding the PatchCore head from quantization and
-rerunning part of Phase 5; that waits for approval. The defect-type field in the log stays
-empty until the classifier of Phase 4 exists.
+its headline score. The fixed INT8 model draws correct maps but doubles the false alarms,
+an honest negative result for the fastest format. The container runs without torch but is
+still large, because of the OpenVINO runtime and the scientific stack. The defect-type field
+in the log stays empty until the classifier of Phase 4 exists.
