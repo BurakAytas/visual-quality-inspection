@@ -12,6 +12,9 @@ lightning_logs/
 runs/
 exports/
 openvino_cache/
+# Decision log and daily reports of a running line
+logs/
+reports/
 results_*.zip
 
 # Python

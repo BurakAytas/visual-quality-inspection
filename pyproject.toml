@@ -37,9 +37,13 @@ export = [
     "nncf==3.4.0",
 ]
 # Line integration: inspection API and operator panel.
+# The API runs the exported model with the plain openvino runtime: no torch, no anomalib.
 serve = [
     "fastapi==0.162.0",
     "uvicorn==0.54.0",
+    "python-multipart==0.0.33",  # FastAPI needs it for file uploads
+    "httpx==0.28.1",  # line simulator; also FastAPI's TestClient
+    "openvino==2026.4.1",
     "streamlit==1.66.1",
 ]
 dev = ["pytest==9.2.0", "ruff==0.17.3"]
