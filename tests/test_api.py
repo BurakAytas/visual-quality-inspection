@@ -90,3 +90,17 @@ def test_unreadable_upload_is_rejected_and_not_logged(log: DecisionLog, data: by
 def test_health_names_the_model(log: DecisionLog) -> None:
     body = client_with_score(1.0, log).get("/health").json()
     assert body == {"status": "ok", "model_version": "fmt@abc+thr=10"}
+
+
+def test_panel_posts_each_upload_once(log: DecisionLog) -> None:
+    pytest.importorskip("streamlit")
+    from vqi.panel import answer_once
+
+    client = client_with_score(12.0, log)
+    answers: dict = {}
+    first = answer_once(client, answers, "upload-1", "a.png", png_bytes())
+    again = answer_once(client, answers, "upload-1", "a.png", png_bytes())  # a Streamlit rerun
+    assert again == first and first["decision"] == "NOK"
+    assert log.daily_summary()[0]["inspected"] == 1
+    answer_once(client, answers, "upload-2", "a.png", png_bytes())  # the same file uploaded anew
+    assert log.daily_summary()[0]["inspected"] == 2

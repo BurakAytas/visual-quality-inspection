@@ -33,8 +33,15 @@ the new upload before the API answer arrives, so waiting for an idle page was no
 The script now waits until the file name appears in both the upload chip and the image
 caption.
 
+The duplicate-upload guard could not be tested through Streamlit's `AppTest`, which has
+no file uploader. It is now a plain function, `answer_once`, tested against the real API
+app with `TestClient`; breaking the guard makes the test fail.
+
 Streamlit 1.66.1 warns that `use_container_width` is deprecated; the panel uses
 `width="stretch"` instead.
+
+After review, the GIF opens on a NOK result instead of the empty upload form, and the
+failure gallery was cut to three overlays per group (D59).
 
 ## Summary
 

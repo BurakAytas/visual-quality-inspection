@@ -47,6 +47,21 @@ def show_result(body: dict[str, Any], image: bytes) -> None:
     st.caption(f"Model {body['model_version']}")
 
 
+def answer_once(
+    client: httpx.Client, answers: dict[str, Any], file_id: str, name: str, image: bytes
+) -> dict[str, Any]:
+    """The API's answer for an upload, posted only the first time ``file_id`` is seen.
+
+    Streamlit reruns the script on every click; without this the part would be inspected
+    and logged again each time. Raises ``httpx.HTTPStatusError`` if the API refuses it.
+    """
+    if file_id not in answers:
+        response = client.post("/inspect", files={"file": (name, image)})
+        response.raise_for_status()
+        answers[file_id] = response.json()
+    return answers[file_id]
+
+
 def inspect_tab(client: httpx.Client) -> None:
     """Upload one image and show the API's answer."""
     upload = st.file_uploader("Part image", type=["png", "jpg", "jpeg", "bmp"])
@@ -54,15 +69,13 @@ def inspect_tab(client: httpx.Client) -> None:
         st.info("Upload an image of a part to inspect it.")
         return
     image = upload.getvalue()
-    # Streamlit reruns the script on every click; post each upload once, or it is logged twice.
     answers = st.session_state.setdefault("answers", {})
-    if upload.file_id not in answers:
-        response = client.post("/inspect", files={"file": (upload.name, image)})
-        if response.status_code != 200:
-            st.error(response.json().get("detail", response.text))
-            return
-        answers[upload.file_id] = response.json()
-    show_result(answers[upload.file_id], image)
+    try:
+        body = answer_once(client, answers, upload.file_id, upload.name, image)
+    except httpx.HTTPStatusError as error:
+        st.error(error.response.json().get("detail", error.response.text))
+        return
+    show_result(body, image)
 
 
 def review_tab(client: httpx.Client) -> None:
