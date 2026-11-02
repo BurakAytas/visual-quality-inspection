@@ -1,7 +1,13 @@
 import numpy as np
 import pytest
 
-from vqi.metrics import bootstrap_ci, miss_rate_at_false_alarm_rate, operating_point, summarize
+from vqi.metrics import (
+    bootstrap_ci,
+    miss_rate_at_false_alarm_rate,
+    operating_point,
+    physical_part,
+    summarize,
+)
 
 # 4 good parts, 4 defective parts; threshold 0.5 rejects scores above it.
 SCORES = np.array([0.1, 0.2, 0.3, 0.7, 0.4, 0.6, 0.8, 0.9])
@@ -87,3 +93,10 @@ def test_summary_counts_parts_and_rejects_mixed_groups() -> None:
 def test_summary_can_limit_metrics() -> None:
     summary = summarize(SCORES, LABELS, 0.5, 0.01, 20, seed=0, names=("recall",))
     assert "recall" in summary and "image_auroc" not in summary
+
+
+def test_physical_part_merges_lighting_variants_only() -> None:
+    assert physical_part("fabric/test_public/bad/000_shift_2.png") == physical_part(
+        "fabric/test_public/bad/000_regular.png"
+    )
+    assert physical_part("leather/test/cut/000.png") != physical_part("leather/test/glue/000.png")

@@ -14,7 +14,6 @@ Example:
 import argparse
 import csv
 import json
-import re
 from pathlib import Path
 
 import matplotlib
@@ -24,24 +23,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from vqi.config import Config, load_config
-from vqi.metrics import summarize
+from vqi.metrics import physical_part, summarize
 from vqi.perturb import perturbations
 from vqi.threshold import load_threshold
 
 # Categorical colours (fixed order) and text colour, from a colour-blind-checked palette.
 COLOURS = {"validation good": "#2a78d6", "test good": "#1baf7a", "test defective": "#eb6834"}
 INK = "#3b3b3b"
-
-# MVTec AD 2 photographs each test part under several lights: "000_regular.png",
-# "000_overexposed.png", "000_shift_2.png", ... These are one part, not six samples.
-LIGHTING_SUFFIX = re.compile(r"_(regular|overexposed|underexposed|shift_\d+)$")
-
-
-def physical_part(image: str) -> str:
-    """Identify the physical part an image shows, e.g. ``fabric/test_public/bad/000``."""
-    path = Path(image)
-    return str(path.parent / LIGHTING_SUFFIX.sub("", path.stem))
-
 
 ROBUSTNESS_METRICS = ("image_auroc", "recall", "false_alarm_rate")
 

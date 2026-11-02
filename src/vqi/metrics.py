@@ -3,7 +3,9 @@
 Labels: 0 = good part, 1 = defective part. A part is rejected (NOK) if ``score > threshold``.
 """
 
+import re
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 from sklearn.metrics import roc_auc_score
@@ -11,6 +13,16 @@ from sklearn.metrics import roc_auc_score
 from vqi.threshold import threshold_for_false_alarm_rate
 
 MetricFn = Callable[[np.ndarray, np.ndarray], float]
+
+# MVTec AD 2 photographs each test part under several lights: "000_regular.png",
+# "000_overexposed.png", "000_shift_2.png", ... These are one part, not six samples.
+LIGHTING_SUFFIX = re.compile(r"_(regular|overexposed|underexposed|shift_\d+)$")
+
+
+def physical_part(image: str) -> str:
+    """Identify the physical part an image shows, e.g. ``fabric/test_public/bad/000``."""
+    path = Path(image)
+    return str(path.parent / LIGHTING_SUFFIX.sub("", path.stem))
 
 
 def operating_point(scores: np.ndarray, labels: np.ndarray, threshold: float) -> dict[str, float]:
