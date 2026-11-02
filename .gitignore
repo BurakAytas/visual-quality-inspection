@@ -10,6 +10,8 @@ datasets/
 weights/
 lightning_logs/
 runs/
+exports/
+openvino_cache/
 results_*.zip
 
 # Python
