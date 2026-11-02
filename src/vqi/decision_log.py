@@ -32,6 +32,17 @@ GROUP BY day
 ORDER BY day
 """
 
+# NOK parts per UTC day and defect type; parts without a type count as "unclassified".
+DAILY_DEFECT_TYPES = """
+SELECT substr(timestamp, 1, 10) AS day,
+       COALESCE(defect_type, 'unclassified') AS defect_type,
+       COUNT(*) AS nok
+FROM decisions
+WHERE decision = 'NOK'
+GROUP BY day, COALESCE(defect_type, 'unclassified')
+ORDER BY day, defect_type
+"""
+
 
 @dataclass(frozen=True)
 class Decision:
@@ -45,7 +56,7 @@ class Decision:
     threshold: float
     model_version: str
     latency_ms: float
-    defect_type: str | None = None  # set by the defect-type classifier (Phase 4)
+    defect_type: str | None = None  # NOK parts, when the API serves a defect-type classifier
 
 
 class DecisionLog:
@@ -83,3 +94,7 @@ class DecisionLog:
     def daily_summary(self) -> list[dict[str, Any]]:
         """Per UTC day: images inspected, NOK, needs review, and defect rate (NOK share)."""
         return self._run(DAILY_SUMMARY)
+
+    def daily_defect_types(self) -> list[dict[str, Any]]:
+        """Per UTC day and defect type: NOK parts."""
+        return self._run(DAILY_DEFECT_TYPES)

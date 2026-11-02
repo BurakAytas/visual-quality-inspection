@@ -9,3 +9,5 @@ validation_scores: results/export/patchcore/leather/scores_openvino_fp32.csv
 # About this share of good parts lands in the operator review queue (see D49).
 review_rate: 0.1
 db_path: logs/decisions.sqlite
+# Names the defect type of NOK parts (scripts/train_classifier.py); leave empty for none.
+classifier_file: exports/classifier/leather/model.xml

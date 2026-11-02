@@ -109,6 +109,7 @@ class ServeConfig:
     validation_scores: Path  # this format's scores CSV from scripts/export_model.py
     review_rate: float  # share of good validation parts sent to operator review
     db_path: Path
+    classifier_file: Path | None  # defect-type model.xml; empty or null: no classifier
 
 
 # Environment variables that override a serve config key: VQI_MODEL_FILE, VQI_DB_PATH, ...
@@ -139,6 +140,7 @@ def load_serve_config(path: str | Path, env: dict[str, str] | None = None) -> Se
         validation_scores=Path(raw["validation_scores"]),
         review_rate=_rate("review_rate", float(raw["review_rate"])),
         db_path=Path(raw["db_path"]),
+        classifier_file=Path(raw["classifier_file"]) if raw["classifier_file"] else None,
     )
 
 

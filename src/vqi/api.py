@@ -48,10 +48,12 @@ def create_app(inspector: Inspector, log: DecisionLog) -> FastAPI:
             threshold=inspector.threshold,
             model_version=inspector.model_version,
             latency_ms=result.latency_ms,
+            defect_type=result.defect_type.name if result.defect_type else None,
         )
         log.add(decision)
         return {
             **asdict(decision),
+            "defect_probability": result.defect_type.probability if result.defect_type else None,
             "review_band": list(inspector.band),
             "heatmap_png_base64": base64.b64encode(result.heatmap_png).decode("ascii"),
         }

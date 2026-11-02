@@ -18,12 +18,15 @@ import numpy as np
 import openvino as ov
 
 from vqi.config import ServeConfig
+from vqi.defect_type import CROP_SIDE, DefectClassifier, DefectType, crop_at_peak
 from vqi.imageio import resize_to
 from vqi.overlay import MAX_SIDE, heatmap_overlay
 from vqi.threshold import load_threshold, review_band
 
 # One (H, W, 3) RGB float32 image in [0, 1] at the model's input size -> (raw score, map).
 Model = Callable[[np.ndarray], tuple[float, np.ndarray]]
+# One RGB float32 crop of any size -> its defect type.
+Classifier = Callable[[np.ndarray], DefectType]
 
 
 class OpenVINOModel:
@@ -51,8 +54,9 @@ class Inspection:
     score: float
     decision: str  # "OK" or "NOK"
     needs_review: bool
-    latency_ms: float  # resize and model; decoding the upload is not included
+    latency_ms: float  # resize, model and classifier; decoding the upload is not included
     heatmap_png: bytes
+    defect_type: DefectType | None = None  # NOK parts only, when a classifier is served
 
 
 def decide(score: float, threshold: float) -> str:
@@ -71,6 +75,7 @@ class Inspector:
         band: tuple[float, float],
         heatmap_vmin: float,
         model_version: str,
+        classifier: Classifier | None = None,
     ) -> None:
         """Store the parts; ``build_inspector`` reads them from a serve config."""
         self.model = model
@@ -79,19 +84,27 @@ class Inspector:
         self.band = band
         self.heatmap_vmin = heatmap_vmin
         self.model_version = model_version
+        self.classifier = classifier
 
     def inspect(self, image: np.ndarray) -> Inspection:
         """Score an (H, W, 3) RGB float32 image of any size."""
         start = time.perf_counter()
         resized = resize_to(image, self.input_size)
         score, anomaly_map = self.model(resized)
+        decision = decide(score, self.threshold)
+        defect_type = None
+        if decision == "NOK" and self.classifier is not None:
+            # Crop the original pixels where the map peaks (D54); small images crop less.
+            side = min(CROP_SIDE, *image.shape[:2])
+            defect_type = self.classifier(crop_at_peak(image, anomaly_map, side))
         latency_ms = (time.perf_counter() - start) * 1000
         return Inspection(
             score=score,
-            decision=decide(score, self.threshold),
+            decision=decision,
             needs_review=self.band[0] < score <= self.band[1],
             latency_ms=latency_ms,
             heatmap_png=self.heatmap_png(resized, anomaly_map),
+            defect_type=defect_type,
         )
 
     def heatmap_png(self, image: np.ndarray, anomaly_map: np.ndarray) -> bytes:
@@ -143,4 +156,5 @@ def build_inspector(config: ServeConfig, commit: str) -> Inspector:
         band=review_band(good_scores, threshold, config.review_rate),
         heatmap_vmin=float(np.median(good_scores)),
         model_version=model_version(config.model_format, commit, threshold),
+        classifier=DefectClassifier(config.classifier_file) if config.classifier_file else None,
     )

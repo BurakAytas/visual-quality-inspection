@@ -6,7 +6,9 @@ import pytest
 
 from vqi import inspection
 from vqi.config import ServeConfig, load_serve_config
+from vqi.defect_type import DefectType
 from vqi.inspection import (
+    Classifier,
     Inspector,
     Model,
     build_inspector,
@@ -57,6 +59,42 @@ def test_decision_and_review_band(score: float, decision: str, needs_review: boo
     assert result.score == score and result.latency_ms > 0
 
 
+def recording_classifier(crops: list[np.ndarray]) -> Classifier:
+    """Classifier that keeps every crop it gets and always says "cut"."""
+
+    def classify(crop: np.ndarray) -> DefectType:
+        crops.append(crop)
+        return DefectType("cut", 0.9)
+
+    return classify
+
+
+def test_only_nok_parts_are_classified() -> None:
+    crops: list[np.ndarray] = []
+    image = np.random.default_rng(0).random((64, 64, 3)).astype(np.float32)
+    nok = Inspector(
+        fake_model(20.0), SIZE, 10.0, (9.0, 11.0), 5.0, "v", recording_classifier(crops)
+    )
+    assert nok.inspect(image).defect_type == DefectType("cut", 0.9)
+    # Smaller than the crop side: the whole original image is classified.
+    assert len(crops) == 1
+    np.testing.assert_array_equal(crops[0], image)
+    ok = Inspector(fake_model(1.0), SIZE, 10.0, (9.0, 11.0), 5.0, "v", recording_classifier(crops))
+    assert ok.inspect(image).defect_type is None and len(crops) == 1
+
+
+def test_crop_comes_from_the_original_image_at_the_map_peak() -> None:
+    crops: list[np.ndarray] = []
+    inspector = Inspector(
+        fake_model(20.0), SIZE, 10.0, (9.0, 11.0), 5.0, "v", recording_classifier(crops)
+    )
+    image = np.random.default_rng(0).random((1024, 1024, 3)).astype(np.float32)
+    inspector.inspect(image)
+    # Cell (2, 3) of the 8 x 8 map is centred on pixel (320, 448): crop rows 192..447,
+    # columns 320..575.
+    np.testing.assert_array_equal(crops[0], image[192:448, 320:576])
+
+
 def test_heatmap_is_a_png_at_model_size_coloured_where_the_map_is_high() -> None:
     result = make_inspector(20.0).inspect(np.full((64, 64, 3), 0.5, np.float32))
     heatmap = cv2.imdecode(np.frombuffer(result.heatmap_png, np.uint8), cv2.IMREAD_COLOR)
@@ -85,6 +123,7 @@ def test_serve_config_env_overrides_a_key() -> None:
     assert load_serve_config(path).review_rate == 0.1
     config = load_serve_config(path, {"VQI_DB_PATH": "x.sqlite", "VQI_REVIEW_RATE": "0.2"})
     assert config.db_path == Path("x.sqlite") and config.review_rate == 0.2
+    assert load_serve_config(path, {"VQI_CLASSIFIER_FILE": ""}).classifier_file is None
     with pytest.raises(ValueError):
         load_serve_config(path, {"VQI_REVIEW_RATE": "1.5"})
 
@@ -111,6 +150,7 @@ def test_build_inspector_reads_threshold_band_and_heatmap_scale(
         validation_scores=scores,
         review_rate=0.2,
         db_path=tmp_path / "decisions.sqlite",
+        classifier_file=None,
     )
     built = build_inspector(config, "abc")
     assert built.threshold == 10.0 and built.input_size == SIZE

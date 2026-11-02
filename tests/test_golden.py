@@ -27,6 +27,7 @@ CONFIG = replace(
     model_file=ROOT / _config.model_file,
     thresholds_file=ROOT / _config.thresholds_file,
     validation_scores=ROOT / _config.validation_scores,
+    classifier_file=None,  # the golden set pins the anomaly model only
 )
 
 _missing = [p for p in [CONFIG.model_file, *(DATA / i["image"] for i in IMAGES)] if not p.exists()]

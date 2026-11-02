@@ -50,8 +50,12 @@ def test_simulator_posts_each_new_image_once_oldest_first(tmp_path: Path) -> Non
 def test_daily_report_writes_one_row_per_day(tmp_path: Path) -> None:
     db = tmp_path / "decisions.sqlite"
     log = DecisionLog(db)
-    for timestamp, verdict in [("2026-11-01T10:00", "NOK"), ("2026-11-02T10:00", "OK")]:
-        log.add(Decision(timestamp, "a.png", 1.0, verdict, False, 2.0, "v1", 100.0))
+    for timestamp, verdict, kind in [
+        ("2026-11-01T10:00", "NOK", "cut"),
+        ("2026-11-01T11:00", "NOK", None),
+        ("2026-11-02T10:00", "OK", None),
+    ]:
+        log.add(Decision(timestamp, "a.png", 1.0, verdict, False, 2.0, "v1", 100.0, kind))
     out = tmp_path / "reports" / "daily.csv"
     subprocess.run(
         [sys.executable, str(SCRIPTS / "daily_report.py"), "--db", str(db), "--out", str(out)],
@@ -60,9 +64,12 @@ def test_daily_report_writes_one_row_per_day(tmp_path: Path) -> None:
     with out.open(newline="", encoding="utf-8") as f:
         rows = list(csv.DictReader(f))
     assert [(r["day"], r["inspected"], r["nok"], r["defect_rate"]) for r in rows] == [
-        ("2026-11-01", "1", "1", "1.0"),
+        ("2026-11-01", "2", "2", "1.0"),
         ("2026-11-02", "1", "0", "0.0"),
     ]
+    with (out.parent / "daily_defect_types.csv").open(newline="", encoding="utf-8") as f:
+        types = [tuple(row.values()) for row in csv.DictReader(f)]
+    assert types == [("2026-11-01", "cut", "1"), ("2026-11-01", "unclassified", "1")]
 
 
 def test_daily_report_refuses_a_missing_log(tmp_path: Path) -> None:
