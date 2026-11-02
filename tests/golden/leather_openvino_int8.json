@@ -1,0 +1,17 @@
+{
+  "about": "Golden set for configs/serve/leather.yaml. Scores were computed once with anomalib's OpenVINOInferencer on the exported INT8 model (the export_model.py scorer); validation images also match results/export/patchcore/leather/scores_openvino_int8.csv. Paths are relative to data/MVTec_AD. Expected: decision and review flag. See D49.",
+  "score_tolerance": 0.001,
+  "images": [
+    {"image": "leather/train/good/144.png", "score": 8.5207, "decision": "OK", "needs_review": false},
+    {"image": "leather/train/good/005.png", "score": 29.1198, "decision": "OK", "needs_review": false},
+    {"image": "leather/train/good/169.png", "score": 30.1519, "decision": "OK", "needs_review": true},
+    {"image": "leather/test/good/010.png", "score": 30.6314, "decision": "OK", "needs_review": true},
+    {"image": "leather/test/good/000.png", "score": 31.1896, "decision": "NOK", "needs_review": true},
+    {"image": "leather/test/good/028.png", "score": 32.7877, "decision": "NOK", "needs_review": false},
+    {"image": "leather/test/color/000.png", "score": 66.6777, "decision": "NOK", "needs_review": false},
+    {"image": "leather/test/cut/000.png", "score": 61.3091, "decision": "NOK", "needs_review": false},
+    {"image": "leather/test/fold/000.png", "score": 65.4104, "decision": "NOK", "needs_review": false},
+    {"image": "leather/test/glue/000.png", "score": 83.7952, "decision": "NOK", "needs_review": false},
+    {"image": "leather/test/poke/000.png", "score": 56.9712, "decision": "NOK", "needs_review": false}
+  ]
+}
