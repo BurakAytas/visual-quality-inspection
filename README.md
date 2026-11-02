@@ -20,7 +20,9 @@ On the harder MVTec AD 2 `fabric` the same method misses 78.9%<!-- claim: result
 <img src="docs/demo.gif" width="760" alt="Operator panel: a cut, a colour defect and a good part, then the review queue and the daily report">
 
 *The operator panel, recorded by `scripts/make_demo_gif.py`: three parts inspected, then the
-review queue and the daily report of a replayed shift.*
+review queue and the daily report of a replayed shift. The latency in the GIF is higher than the
+benchmark because the API, the panel and a headless browser share one CPU during recording;
+the export table below has the measured latency.*
 
 > **Status:** all seven phases are done (see [Project status](#project-status)). Every
 > result number in this README is checked against `results/*.json` in CI by

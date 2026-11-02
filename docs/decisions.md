@@ -277,7 +277,7 @@ EfficientAD. On first use anomalib downloads Imagenette (penalty images for the 
 and the pretrained teacher weights.
 
 ### D33. EfficientAD patent note is worded carefully
-The brief asks for a README note that EfficientAD is patented with limited commercial use.
+The plan called for a README note that EfficientAD is patented with limited commercial use.
 I could not confirm a specific patent: web searches found the paper (by MVTec authors) and
 one US patent by an overlapping group of MVTec authors whose claims I could not read. The
 README therefore says the method comes from MVTec researchers and that patent and licence
