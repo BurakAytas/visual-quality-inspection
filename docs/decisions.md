@@ -581,3 +581,52 @@ was not re-run for this; its `environment.cpu` was filled in with the same funct
 same machine (`12th Gen Intel(R) Core(TM) i5-12400F`), the only field changed. So the README
 can state the model with a source, `check_readme_claims.py` now also accepts text claims:
 backticked text followed by a claim marker must appear in the JSON string it names.
+
+## Phase 4: defect-type classifier (built after Phase 6)
+
+### D54. Crops come from the anomaly-map peak, and both models are judged by 5-fold CV
+A rejected part is classified from a 256 px crop of the original image centred on the
+maximum of the served anomaly map (OpenVINO FP32), resized to 224 px. Ground-truth masks
+are never used, in training or in the API, because a line has none. On leather the map is
+256 px for a 1024 px image; its peak lies inside the defect mask in 80 of 92 test defects
+(all fold and glue, 13 of 19 color), and the 256 px crop around it touches the mask in all
+92, which is why the crop is that large. Mask bounding boxes have median sides of 63 px
+(poke) to 252 px (fold).
+
+Leather has 92 labelled defects in five classes, about 18 per class, so there is no room
+for a separate test set. Both models are compared by stratified 5-fold cross-validation
+(seed 42): every image is predicted once by a model that never saw it, and the pooled
+predictions give accuracy and macro F1 with per-image bootstrap intervals, recall per class
+with its count, and a confusion matrix. ResNet18 (ImageNet weights, all layers fine-tuned)
+uses a recipe fixed before any result: Adam at 1e-4, 20 epochs, batch 16, random flips and
+quarter turns. Colour jitter is left out because one class is "color". HOG + RBF SVM is the
+classical baseline; its C is picked by an inner 3-fold search inside each training fold.
+HOG sees a grey crop, so it cannot use colour at all. The final ResNet18 is then trained on
+all 92 images, with the ImageNet normalisation inside the graph, and exported to OpenVINO
+with `classes.json` next to it.
+
+### D55. HOG comes from scikit-image, because OpenCV 5 has no `HOGDescriptor`
+The pinned `opencv-python-headless` 5.0.0.93 has no `cv2.HOGDescriptor`: OpenCV 5 moved it
+out of the main modules, and neither the module nor its `__init__.pyi` stub has it.
+`skimage.feature.hog` (scikit-image 0.26.0, already installed with anomalib) computes the
+same kind of descriptor; it is pinned in the `train` extra and imported only inside
+`hog_features`, so the API image does not need it. Its test is skipped where scikit-image
+is missing, as in CI.
+
+### D56. ResNet18 is served for NOK parts; what it does not do
+Pooled out-of-fold results on leather: ResNet18 accuracy 0.967 (95% CI 0.924 to 1.0), macro
+F1 0.967; HOG + SVM accuracy 0.641 (0.543 to 0.728), macro F1 0.637, with C = 10 chosen in
+every fold. ResNet18's three errors are two cuts (taken for fold and poke) and one poke
+(taken for fold). With about 18 parts per class one error moves a class recall by about
+5 points, so the gap between the models is clear but the ResNet18 figure is not a precise
+estimate. GPU training is not bit-for-bit deterministic, so a rerun can move an image or
+two.
+
+The API classifies only NOK parts. The crop is taken from the uploaded image at the map
+peak, capped at the image size for small uploads. The type goes into the decision log's
+existing `defect_type` column; its probability is returned in the answer but not logged,
+so the log schema did not change. The daily report gets a second CSV with NOK parts per
+day and type. Limits: the classes are leather's five, so another product needs its own
+labelled defects and its own model, and there is no "unknown" class or rejection
+threshold, because there is no data to calibrate one. A new kind of defect will be named as
+one of the five; the probability in the answer is the only hint, and it is not calibrated.

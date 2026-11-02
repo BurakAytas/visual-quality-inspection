@@ -3,9 +3,9 @@
 Anomaly detection for visual quality control that learns from good parts only, sets its
 decision threshold from good validation images only, and reports what it misses.
 
-> **Status:** Phases 1, 2, 3, 5 and 6 are done (baseline, metrics, EfficientAD comparison,
-> robustness, export and CPU latency, inspection API). Phases 4 and 7 are planned (see
-> [Project status](#project-status)). Every result number in this README is checked
+> **Status:** Phases 1 to 6 are done (baseline, metrics, EfficientAD comparison,
+> robustness, defect-type classifier, export and CPU latency, inspection API). Phase 7 is
+> planned (see [Project status](#project-status)). Every result number in this README is checked
 > against `results/*.json` in CI by `scripts/check_readme_claims.py`.
 
 ## Problem
@@ -121,6 +121,41 @@ the test good parts it raises false alarms on 25.0%<!-- claim: results/export/pa
 ([D52](docs/decisions.md)). That is twice the false alarms for a modest speed-up, so the API
 serves OpenVINO FP32.
 
+## Defect type of rejected parts
+
+The anomaly model says where a part is wrong; a second model names the defect. For each NOK
+part the API crops the original image around the peak of the anomaly map and classifies
+the crop. Crops come from the anomaly map in training too, never from ground-truth masks,
+because a line has none ([D54](docs/decisions.md)).
+
+Leather has only 92<!-- claim: results/classifier/leather/classifier.json#n_images --> labelled defects in five classes, so there
+is no separate test set: both models are compared by 5<!-- claim: results/classifier/leather/classifier.json#settings.folds -->-fold
+stratified cross-validation, and every part below was classified by a model that had not
+seen it. ResNet18's training recipe was fixed before the first result; the SVM's one
+setting is chosen inside each training fold.
+
+<!-- results:start -->
+| Defect class | Test parts | ResNet18 correct | HOG + SVM correct |
+|---|---|---|---|
+| color | 19<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.color.n --> | 19<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.color.correct --> | 14<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.per_class.color.correct --> |
+| cut | 19<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.cut.n --> | 17<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.cut.correct --> | 15<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.per_class.cut.correct --> |
+| fold | 17<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.fold.n --> | 17<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.fold.correct --> | 10<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.per_class.fold.correct --> |
+| glue | 19<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.glue.n --> | 19<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.glue.correct --> | 12<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.per_class.glue.correct --> |
+| poke | 18<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.poke.n --> | 17<!-- claim: results/classifier/leather/classifier.json#models.resnet18.per_class.poke.correct --> | 8<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.per_class.poke.correct --> |
+<!-- results:end -->
+
+Pooled over all parts, accuracy is 0.967<!-- claim: results/classifier/leather/classifier.json#models.resnet18.accuracy.value --> (0.924<!-- claim: results/classifier/leather/classifier.json#models.resnet18.accuracy.ci95.0 --> to 1.000<!-- claim: results/classifier/leather/classifier.json#models.resnet18.accuracy.ci95.1 -->) for ResNet18
+and 0.641<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.accuracy.value --> (0.543<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.accuracy.ci95.0 --> to 0.728<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.accuracy.ci95.1 -->) for HOG + SVM (95% bootstrap intervals); macro F1 is
+0.967<!-- claim: results/classifier/leather/classifier.json#models.resnet18.macro_f1.value --> (0.920<!-- claim: results/classifier/leather/classifier.json#models.resnet18.macro_f1.ci95.0 --> to 1.000<!-- claim: results/classifier/leather/classifier.json#models.resnet18.macro_f1.ci95.1 -->) against 0.637<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.macro_f1.value --> (0.520<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.macro_f1.ci95.0 --> to 0.721<!-- claim: results/classifier/leather/classifier.json#models.hog_svm.macro_f1.ci95.1 -->). HOG sees texture
+only, in grey, so it cannot tell a colour defect by its colour. With so few parts per
+class, one error moves a class by several points: the gap between the models is clear, the
+exact ResNet18 figure is not. Confusion matrices: `results/classifier/leather/`.
+
+The API serves the ResNet18, retrained on all 92<!-- claim: results/classifier/leather/classifier.json#n_images --> parts and exported to
+OpenVINO. It knows only these five classes: there is no "unknown" class, so a new kind of
+defect is named as one of them, and another product needs its own labelled defects
+([D56](docs/decisions.md)).
+
 ## Line integration: inspection API
 
 `vqi.api` is a FastAPI service around the exported OpenVINO model. It runs on the plain
@@ -129,7 +164,8 @@ match anomalib's own inferencer. Every decision is written to a SQLite log with 
 version (format, git commit, threshold).
 
 - `POST /inspect` takes an image and returns OK/NOK, the score, the threshold, the latency,
-  a heatmap PNG and `needs_review`.
+  a heatmap PNG and `needs_review`; for a NOK part also its defect type and the
+  classifier's probability.
 - `GET /review` lists the parts flagged for an operator. A part is flagged when its score
   falls in a band around the threshold, derived from the good validation scores, not set by
   hand (D49).
@@ -139,7 +175,7 @@ version (format, git commit, threshold).
 pip install -e ".[serve]"
 uvicorn --factory vqi.api:app_from_env --port 8000
 python scripts/line_simulator.py --folder incoming    # posts each new image in the folder
-python scripts/daily_report.py                        # CSV per day: inspected, NOK, review
+python scripts/daily_report.py                        # CSVs per day: counts, NOK by type
 ```
 
 Or both in containers (CPU only, no torch in the image); drop images into `incoming/`:
@@ -153,7 +189,8 @@ pyarrow stack that scikit-learn, matplotlib and Streamlit (for the Phase 7 panel
 
 Settings live in `configs/serve/leather.yaml`; any key can be overridden with an
 environment variable such as `VQI_MODEL_FILE`. The model comes from
-`scripts/export_model.py` and is never committed.
+`scripts/export_model.py` and is never committed; the defect-type model comes from
+`scripts/train_classifier.py`, and an empty `VQI_CLASSIFIER_FILE` serves without it.
 
 ## Demo data
 
@@ -190,7 +227,7 @@ python scripts/evaluate.py --model configs/models/patchcore.yaml configs/leather
 | 1 | Skeleton, configs, data script, CI | done |
 | 2 | PatchCore baseline, validation-only threshold, metrics, failure overlays | done |
 | 3 | EfficientAD comparison, robustness to perturbations | done |
-| 4 | Defect-type classifier (ResNet18 vs HOG + SVM), hybrid pipeline | planned |
+| 4 | Defect-type classifier (ResNet18 vs HOG + SVM), hybrid pipeline | done |
 | 5 | ONNX / OpenVINO export, CPU latency | done |
 | 6 | FastAPI line integration, SQLite decision log, Docker | done |
 | 7 | Operator panel, final README | planned |
