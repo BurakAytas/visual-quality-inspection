@@ -16,6 +16,8 @@ def load_rgb(path: str | Path) -> np.ndarray:
 
 def decode_bytes(data: bytes) -> np.ndarray:
     """Decode an encoded image (PNG, JPEG, ...) to (H, W, 3) RGB float32 in [0, 1]."""
+    if not data:  # cv2.imdecode raises cv2.error on an empty buffer
+        raise ValueError("empty image")
     image = cv2.imdecode(np.frombuffer(data, np.uint8), cv2.IMREAD_COLOR)
     if image is None:
         raise ValueError("not a readable image")

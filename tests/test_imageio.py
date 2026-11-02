@@ -28,6 +28,8 @@ def test_bad_input_raises(tmp_path: Path) -> None:
         load_rgb(tmp_path / "missing.png")
     with pytest.raises(ValueError):
         decode_bytes(b"not an image")
+    with pytest.raises(ValueError):
+        decode_bytes(b"")  # an empty upload; OpenCV itself raises cv2.error here
 
 
 def test_resize_to_is_a_no_op_at_the_right_size() -> None:
