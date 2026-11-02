@@ -1,4 +1,5 @@
-# The inspection API and a simulated camera that posts every image dropped into incoming/.
+# The inspection API, a simulated camera that posts every image dropped into incoming/,
+# and the operator panel on http://localhost:8501.
 #   VQI_GIT_COMMIT=$(git rev-parse --short HEAD) docker compose up --build
 # Needs the exported model in exports/ (scripts/export_model.py); decisions go to logs/.
 x-build: &build
@@ -26,6 +27,17 @@ services:
     command: ["python", "scripts/line_simulator.py", "--folder", "/app/incoming", "--url", "http://api:8000"]
     volumes:
       - ./incoming:/app/incoming:ro
+    depends_on:
+      api:
+        condition: service_healthy
+
+  panel:
+    build: *build
+    command: ["streamlit", "run", "src/vqi/panel.py", "--server.port", "8501", "--server.address", "0.0.0.0", "--server.headless", "true", "--browser.gatherUsageStats", "false"]
+    environment:
+      VQI_API_URL: http://api:8000
+    ports:
+      - "8501:8501"
     depends_on:
       api:
         condition: service_healthy

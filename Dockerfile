@@ -16,5 +16,5 @@ COPY scripts ./scripts
 ARG VQI_GIT_COMMIT=unknown
 ENV VQI_GIT_COMMIT=${VQI_GIT_COMMIT}
 
-EXPOSE 8000
+EXPOSE 8000 8501
 CMD ["uvicorn", "--factory", "vqi.api:app_from_env", "--host", "0.0.0.0", "--port", "8000"]
