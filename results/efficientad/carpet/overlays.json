@@ -1,0 +1,87 @@
+[
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_hole_007.jpg",
+    "score": 3.042337417602539
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_cut_012.jpg",
+    "score": 2.7847766876220703
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_hole_008.jpg",
+    "score": 2.125812530517578
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_cut_000.jpg",
+    "score": 2.1086220741271973
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_thread_008.jpg",
+    "score": 2.036000967025757
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_hole_006.jpg",
+    "score": 1.9951088428497314
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_thread_005.jpg",
+    "score": 1.9816765785217285
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_thread_012.jpg",
+    "score": 1.9007705450057983
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_color_011.jpg",
+    "score": 0.16009128093719482
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_thread_015.jpg",
+    "score": 0.21681712567806244
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_006.jpg",
+    "score": 0.3522869050502777
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_015.jpg",
+    "score": 0.30637019872665405
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_002.jpg",
+    "score": 0.30615776777267456
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_004.jpg",
+    "score": 0.2992297410964966
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_005.jpg",
+    "score": 0.2978866398334503
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_009.jpg",
+    "score": 0.2968018054962158
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_003.jpg",
+    "score": 0.2926409840583801
+  }
+]

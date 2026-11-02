@@ -2,91 +2,81 @@
   {
     "group": "tp",
     "file": "overlays/tp/test_public_bad_000_shift_2.jpg",
-    "score": 53.28775405883789
+    "score": 52.77545928955078
   },
   {
     "group": "tp",
     "file": "overlays/tp/test_public_bad_000_shift_3.jpg",
-    "score": 52.537254333496094
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_000_shift_1.jpg",
-    "score": 46.55902862548828
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_000_overexposed.jpg",
-    "score": 46.42072296142578
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_000_underexposed.jpg",
-    "score": 46.32341003417969
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_000_regular.jpg",
-    "score": 46.267574310302734
+    "score": 52.027801513671875
   },
   {
     "group": "tp",
     "file": "overlays/tp/test_public_bad_007_shift_2.jpg",
-    "score": 45.4348030090332
+    "score": 46.47139358520508
   },
   {
     "group": "tp",
-    "file": "overlays/tp/test_public_bad_013_shift_2.jpg",
-    "score": 44.01513671875
+    "file": "overlays/tp/test_public_bad_000_shift_1.jpg",
+    "score": 46.43384552001953
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_underexposed.jpg",
+    "score": 46.402320861816406
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_overexposed.jpg",
+    "score": 46.27891540527344
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_000_regular.jpg",
+    "score": 46.190025329589844
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_public_bad_007_shift_3.jpg",
+    "score": 45.513755798339844
   },
   {
     "group": "fn",
     "file": "overlays/fn/test_public_bad_010_underexposed.jpg",
-    "score": 36.34130096435547
+    "score": 35.40009689331055
   },
   {
     "group": "fn",
     "file": "overlays/fn/test_public_bad_010_regular.jpg",
-    "score": 36.6474609375
+    "score": 35.638336181640625
   },
   {
     "group": "fn",
     "file": "overlays/fn/test_public_bad_010_shift_2.jpg",
-    "score": 36.95157241821289
+    "score": 36.16645050048828
   },
   {
     "group": "fn",
-    "file": "overlays/fn/test_public_bad_004_underexposed.jpg",
-    "score": 36.95926284790039
+    "file": "overlays/fn/test_public_bad_010_shift_3.jpg",
+    "score": 36.38261413574219
   },
   {
     "group": "fn",
     "file": "overlays/fn/test_public_bad_010_overexposed.jpg",
-    "score": 37.18775177001953
+    "score": 36.542938232421875
   },
   {
     "group": "fn",
-    "file": "overlays/fn/test_public_bad_004_regular.jpg",
-    "score": 37.2149543762207
-  },
-  {
-    "group": "fn",
-    "file": "overlays/fn/test_public_bad_004_overexposed.jpg",
-    "score": 37.22974395751953
+    "file": "overlays/fn/test_public_bad_004_underexposed.jpg",
+    "score": 36.72150421142578
   },
   {
     "group": "fn",
     "file": "overlays/fn/test_public_bad_010_shift_1.jpg",
-    "score": 37.30949401855469
+    "score": 36.744110107421875
   },
   {
-    "group": "fp",
-    "file": "overlays/fp/test_public_good_005_shift_3.jpg",
-    "score": 42.9169807434082
-  },
-  {
-    "group": "fp",
-    "file": "overlays/fp/test_public_good_005_shift_2.jpg",
-    "score": 42.793487548828125
+    "group": "fn",
+    "file": "overlays/fn/test_public_bad_004_shift_2.jpg",
+    "score": 37.1543083190918
   }
 ]

@@ -1,0 +1,23 @@
+{
+  "git_commit": "2fde1efee41664d407c323e89b3b8397f45affef",
+  "anomalib": "2.7.0",
+  "torch": "2.14.1+cu130",
+  "device": "NVIDIA GeForce RTX 3070 Ti",
+  "train_seconds": 303.5,
+  "n_train_images": 224,
+  "n_validation_images": 56,
+  "n_test_images": 117,
+  "image_size": 256,
+  "model_params": {
+    "model_size": "small",
+    "imagenet_dir": "data/imagenette"
+  },
+  "trainer_args": {
+    "max_epochs": 10
+  },
+  "seed": 42,
+  "overlay_scale": {
+    "vmin": -0.05724097043275833,
+    "vmax": 0.2731075882911682
+  }
+}

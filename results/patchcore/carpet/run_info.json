@@ -1,9 +1,9 @@
 {
-  "git_commit": "0e019aa4221225036a145e73e3dd5c50b452573c",
+  "git_commit": "2fde1efee41664d407c323e89b3b8397f45affef",
   "anomalib": "2.7.0",
   "torch": "2.14.1+cu130",
-  "device": "Tesla T4",
-  "train_seconds": 100.7,
+  "device": "NVIDIA GeForce RTX 3070 Ti",
+  "train_seconds": 64.1,
   "n_train_images": 224,
   "n_validation_images": 56,
   "n_test_images": 117,
@@ -17,9 +17,10 @@
     "coreset_sampling_ratio": 0.1,
     "num_neighbors": 9
   },
+  "trainer_args": {},
   "seed": 42,
   "overlay_scale": {
-    "vmin": 19.827926635742188,
-    "vmax": 32.47767639160156
+    "vmin": 19.823659896850586,
+    "vmax": 32.4933967590332
   }
 }

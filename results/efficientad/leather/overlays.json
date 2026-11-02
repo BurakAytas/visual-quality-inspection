@@ -1,0 +1,112 @@
+[
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_015.jpg",
+    "score": 11.88084602355957
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_000.jpg",
+    "score": 10.737260818481445
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_014.jpg",
+    "score": 10.351993560791016
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_013.jpg",
+    "score": 7.888609886169434
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_glue_018.jpg",
+    "score": 5.289381980895996
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_poke_008.jpg",
+    "score": 4.482304573059082
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_poke_011.jpg",
+    "score": 4.329865455627441
+  },
+  {
+    "group": "tp",
+    "file": "overlays/tp/test_fold_016.jpg",
+    "score": 3.9159438610076904
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_glue_010.jpg",
+    "score": 0.05082216486334801
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_glue_004.jpg",
+    "score": 0.15462017059326172
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_color_004.jpg",
+    "score": 0.16407835483551025
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_color_013.jpg",
+    "score": 0.17941421270370483
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_color_016.jpg",
+    "score": 0.1817377805709839
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_color_009.jpg",
+    "score": 0.18878139555454254
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_glue_009.jpg",
+    "score": 0.2076048105955124
+  },
+  {
+    "group": "fn",
+    "file": "overlays/fn/test_color_007.jpg",
+    "score": 0.21986417472362518
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_013.jpg",
+    "score": 0.35662585496902466
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_011.jpg",
+    "score": 0.29964691400527954
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_024.jpg",
+    "score": 0.26350754499435425
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_020.jpg",
+    "score": 0.2631879150867462
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_005.jpg",
+    "score": 0.26118457317352295
+  },
+  {
+    "group": "fp",
+    "file": "overlays/fp/test_good_030.jpg",
+    "score": 0.2450518012046814
+  }
+]
