@@ -459,6 +459,8 @@ FP32 195.5 ms, FP16 192.1 ms, INT8 167.4 ms. INT8 helped less than expected (171
 213 MB, about 15% faster than OpenVINO FP32); NNCF quantizes the CNN, while PatchCore's
 memory bank and nearest-neighbour search stay in floating point. That explanation is
 likely but not measured; profiling the search separately would confirm it.
+(Correction, Phase 6: the explanation is wrong. NNCF also quantized the memory-bank search
+and clipped the anomaly map; see D50.)
 The export run retrained PatchCore, so its leather threshold and false-alarm rate (12.5%)
 differ from Phase 3's run (18.8%), the same run-to-run variation as in D40.
 
@@ -470,3 +472,72 @@ interval from the CSVs (each `leather` image is its own physical part) matched
 (`leather/test/cut/000.png`), as `train_anomaly.py` does; the helper moved to
 `vqi.dataset_files.relative_to_category`, with a test. The committed CSVs from this run
 keep bare file names.
+
+## Phase 6: inspection API
+
+### D49. The API runs the OpenVINO model with plain `openvino`, and flags a review band
+The API compiles `model.xml` with `openvino.Core` and reads the `pred_score` and
+`anomaly_map` outputs itself, instead of using anomalib's `OpenVINOInferencer`. The
+inferencer imports torch and anomalib at module level (`openvino_inferencer.py`, line 57 in
+the installed version), which would pull several gigabytes into a CPU image that only needs
+the OpenVINO runtime. The `serve` extra therefore holds FastAPI, uvicorn, python-multipart
+and openvino, and no torch. The risk of reading the outputs by hand is a silent mismatch, so
+`tests/test_golden.py` compares the plain runtime with `OpenVINOInferencer` on a fixed set
+of 11 leather images (score and full anomaly map, absolute tolerance 1e-4) whenever the
+`train` extra and the data are present. On the Phase 5 INT8 model the largest difference
+over every validation and test-good image was 4.9e-7, against the export CSV as well. The
+same golden file pins each image's score (tolerance 0.001), decision and review flag, so a
+changed model, threshold or band shows up as a failing test, not as a quiet shift on the
+line.
+
+The decision itself stays the per-format threshold from D43 (NOK when score > threshold).
+Around it the API sets `needs_review` for scores in a band, derived from the good validation
+scores and not chosen by hand: the lower edge is the threshold that would give a false-alarm
+rate of `review_rate` on good validation parts (`review_rate: 0.1`, so roughly the top 10%
+of good validation scores), and the band is mirrored the same distance above the threshold.
+The reason is D42 and D43: the ranking transfers between runs and formats, the exact
+threshold does not, so the parts closest to it on either side are the ones an operator
+should look at. For OpenVINO FP32 the threshold is 30.399 and the band (29.015, 31.784];
+it holds 4 of 49 good validation parts, 14 of 32 good test parts and none of the 92 defect
+parts (the lowest defect scores 37.64). That 14 of 32 is itself a finding: the test good
+parts score higher than the validation good parts, the same weak threshold transfer as in
+D42, and the review queue is where it becomes visible in operation.
+
+Smaller choices: the heatmap is coloured from the median good validation score to the
+threshold, so anything red is above the decision line; the minimum was rejected because one
+validation score is an outlier. The model version written with every decision is
+`<format>@<git commit>+thr=<threshold>` (the commit from `VQI_GIT_COMMIT`, else
+`git rev-parse`, else `unknown`), enough to tell which model and threshold made a decision.
+Decisions go to SQLite (one file, no server, a CHECK constraint on OK/NOK), days in the
+daily report are UTC dates, and the report is a CSV, which opens in Excel without an extra
+dependency. Every setting lives in `configs/serve/leather.yaml` and can be overridden by an
+environment variable `VQI_<KEY>`, so the container needs no edited files.
+
+### D50. The INT8 export clips its anomaly map, so the API serves FP32; D48 corrected
+The first API run served INT8, and its heatmaps were blank even for a part scoring 69.
+Reading the quantized graph showed why: NNCF did not stop at the CNN. It put a FakeQuantize
+on the patch-distance map, with a range calibrated on good images only ([0, 27.554]), so the
+anomaly map is clipped at about 27.5, below the threshold. It also quantized the
+memory-bank matmul and its inputs, which moves some scores far (test good 007: 16.75 in
+INT8, 28.8 in FP32). The image score keeps AUROC 1.000 only because `pred_score` is taken
+before the clipping node. The FP32 and FP16 maps are correct (glue 002 peaks at 68.55).
+
+So D48's explanation, that the memory bank and nearest-neighbour search stay in floating
+point, is wrong: they were quantized, and the modest INT8 speed-up has to be explained
+again once the export is fixed. The API now serves OpenVINO FP32 (threshold and band in
+D49), and `test_anomaly_map_marks_the_defects` requires the map of every defect in the
+golden set to exceed the threshold; it fails on the current INT8 model. The fix is to keep
+the PatchCore head (from the memory-bank matmul to the outputs) out of quantization with
+NNCF's `IgnoredScope`, then export and benchmark INT8 again; that reruns part of Phase 5
+and waits for approval.
+
+### D51. Empty uploads, and a stale `.pyc` in mutation checks
+An empty upload reached `cv2.imdecode`, which raised `cv2.error (-215:Assertion failed)
+!buf.empty()` and became a 500. `decode_bytes` now raises `ValueError("empty image")`, which
+the API answers with 400 like any unreadable image.
+
+While breaking code on purpose to check that each test fails, one replacement had the same
+length as the original and was restored within the same second. Python reused the cached
+`.pyc` (it compares source size and modification time in seconds), so the test ran the
+wrong code. Mutation checks now run with `PYTHONDONTWRITEBYTECODE=1` after deleting
+`__pycache__`. The code under test was correct; only the check was misleading.

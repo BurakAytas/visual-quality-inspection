@@ -3,8 +3,8 @@
 Anomaly detection for visual quality control that learns from good parts only, sets its
 decision threshold from good validation images only, and reports what it misses.
 
-> **Status:** Phases 1, 2, 3 and 5 are done (baseline, metrics, EfficientAD comparison,
-> robustness, export and CPU latency). Phases 4, 6 and 7 are planned (see
+> **Status:** Phases 1, 2, 3, 5 and 6 are done (baseline, metrics, EfficientAD comparison,
+> robustness, export and CPU latency, inspection API). Phases 4 and 7 are planned (see
 > [Project status](#project-status)). Every result number in this README is checked
 > against `results/*.json` in CI by `scripts/check_readme_claims.py`.
 
@@ -112,10 +112,37 @@ CPU with 12<!-- claim: results/export/patchcore/leather/export.json#environment.
 | OpenVINO INT8 | 171<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.size_mb --> | 167.4<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.median_ms --> | 227.5<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.p95_ms --> | 1.000<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.image.image_auroc.value --> | 0.125<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.image.false_alarm_rate.value --> |
 <!-- results:end -->
 
-Every format keeps the ranking of the PyTorch model. OpenVINO INT8 is the fastest, but the
-gain over FP32 is modest and the file shrinks less than INT8 suggests: the CNN weights are
-quantized, while PatchCore's memory bank of patch features and the nearest-neighbour
-search stay in floating point and are likely the larger cost at this input size.
+Every format keeps the image-level ranking of the PyTorch model. The INT8 row needs a
+caveat found while building the API: NNCF quantized more than the CNN. It also quantized
+PatchCore's memory-bank search and clipped the anomaly map below the decision threshold, so
+INT8 heatmaps stay blank even on clear defects. The image score is taken before that
+clipping, which is why the table did not show it. The API therefore serves OpenVINO FP32;
+the INT8 fix is to keep the PatchCore head out of quantization ([D50](docs/decisions.md)).
+
+## Line integration: inspection API
+
+`vqi.api` is a FastAPI service around the exported OpenVINO model. It runs on the plain
+OpenVINO runtime, without torch, and a golden-set test checks that its scores and maps
+match anomalib's own inferencer. Every decision is written to a SQLite log with the model
+version (format, git commit, threshold).
+
+- `POST /inspect` takes an image and returns OK/NOK, the score, the threshold, the latency,
+  a heatmap PNG and `needs_review`.
+- `GET /review` lists the parts flagged for an operator. A part is flagged when its score
+  falls in a band around the threshold, derived from the good validation scores, not set by
+  hand (D49).
+- `GET /health` reports the model version.
+
+```bash
+pip install -e ".[serve]"
+uvicorn --factory vqi.api:app_from_env --port 8000
+python scripts/line_simulator.py --folder incoming    # posts each new image in the folder
+python scripts/daily_report.py                        # CSV per day: inspected, NOK, review
+```
+
+Settings live in `configs/serve/leather.yaml`; any key can be overridden with an
+environment variable such as `VQI_MODEL_FILE`. The model comes from
+`scripts/export_model.py` and is never committed.
 
 ## Demo data
 
@@ -154,7 +181,7 @@ python scripts/evaluate.py --model configs/models/patchcore.yaml configs/leather
 | 3 | EfficientAD comparison, robustness to perturbations | done |
 | 4 | Defect-type classifier (ResNet18 vs HOG + SVM), hybrid pipeline | planned |
 | 5 | ONNX / OpenVINO export, CPU latency | done |
-| 6 | FastAPI line integration, SQLite decision log, Docker | planned |
+| 6 | FastAPI line integration, SQLite decision log, Docker | done |
 | 7 | Operator panel, final README | planned |
 
 Design decisions and negative results are logged in [docs/decisions.md](docs/decisions.md).
