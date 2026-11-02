@@ -23,6 +23,7 @@ import json
 import os
 import platform
 import subprocess
+import sys
 from pathlib import Path
 
 import anomalib
@@ -168,6 +169,10 @@ def main() -> None:
     parser.add_argument("--model", required=True, type=Path, help="configs/models/<model>.yaml")
     parser.add_argument("--warmup", type=int, default=10, help="untimed runs before timing")
     args = parser.parse_args()
+    # torch's ONNX exporter prints emoji; a Windows console (e.g. cp1254) cannot encode
+    # them and the export would crash. Write UTF-8 regardless of the console code page.
+    for stream in (sys.stdout, sys.stderr):
+        stream.reconfigure(encoding="utf-8", errors="replace")
     run(load_config(args.config, args.model), args.warmup)
 
 

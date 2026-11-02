@@ -406,3 +406,9 @@ well and which Phase 4's defect-type labels come from.
   while trying to convert the graph to another opset; the export continues with the
   original opset and the exported model's scores match PyTorch's. It is noise, not a failure.
 - OpenVINO writes a compiled-model cache to `openvino_cache/`; it is git-ignored.
+- On Windows the export crashed with `UnicodeEncodeError: 'charmap' codec can't encode
+  character '✅'`: torch's ONNX exporter prints a check-mark emoji, and the console
+  code page (cp1254) cannot encode it. `scripts/export_model.py` now switches stdout and
+  stderr to UTF-8 at start-up (`errors="replace"`), so no `PYTHONUTF8=1` is needed.
+  Found by the user on the first local run; Linux consoles are UTF-8, so the CPU smoke run
+  could not show it.
