@@ -635,3 +635,30 @@ day and type. Limits: the classes are leather's five, so another product needs i
 labelled defects and its own model, and there is no "unknown" class or rejection
 threshold, because there is no data to calibrate one. A new kind of defect will be named as
 one of the five; the probability in the answer is the only hint, and it is not calibrated.
+
+## Phase 7: operator panel and final README
+
+### D57. The panel is a thin client of the API
+`vqi.panel` (Streamlit) talks to the inspection API over HTTP and holds no model, no
+database connection and no state beyond the answers of the current session. The panel and
+the line therefore see the same model, the same threshold and the same decision log, and
+the panel can run on another machine or container (`panel` in `compose.yaml`). The report
+tab needed the daily counts, which only `scripts/daily_report.py` produced from the SQLite
+file, so the API got `GET /daily`, returning `DecisionLog.daily_summary()` and
+`daily_defect_types()`. Streamlit reruns the whole script on every interaction; each
+upload is posted once and its answer kept in `st.session_state` by file id, or every click
+would log the part again. Streamlit 1.66.1 deprecates `use_container_width`, so images and
+tables use `width="stretch"`. Tests run the panel headless with `streamlit.testing`
+`AppTest` against an `httpx.MockTransport` fake of the API.
+
+### D58. The demo GIF is made by a script, not a screen recording
+`scripts/make_demo_gif.py` starts the API on a temporary decision log, replays the leather
+test images through `POST /inspect` as the line simulator would, starts the panel and
+drives it with headless Chromium (Playwright 1.64.0, in the `demo` extra). Each step is a
+screenshot; Pillow joins them into `docs/demo.gif`. The three parts inspected on camera
+(`good/005`, `cut/003`, `color/000`) were picked by eye for marks visible at GIF size.
+`good/000` was not used as the good part because it is a false alarm; the review queue
+shows such parts instead. The first version took the screenshot as soon as the page was
+idle and recorded the previous part's result: Streamlit shows the new upload before the
+new answer arrives. The script now waits until the file name appears twice, in the upload
+chip and in the image caption, which happens only once the new answer is drawn.

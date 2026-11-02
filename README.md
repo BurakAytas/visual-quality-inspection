@@ -1,12 +1,30 @@
 # Visual Quality Inspection
 
-Anomaly detection for visual quality control that learns from good parts only, sets its
-decision threshold from good validation images only, and reports what it misses.
+**Problem:** visual defects (cuts, stains, colour errors) slip past manual inspection, and
+real lines have too few defect samples to train a classifier on.
 
-> **Status:** Phases 1 to 6 are done (baseline, metrics, EfficientAD comparison,
-> robustness, defect-type classifier, export and CPU latency, inspection API). Phase 7 is
-> planned (see [Project status](#project-status)). Every result number in this README is checked
-> against `results/*.json` in CI by `scripts/check_readme_claims.py`.
+**Approach:** an anomaly model (PatchCore) learns from good parts only and sets its
+threshold from good validation images only; a small classifier (ResNet18) names the defect
+type of rejected parts; both run exported to OpenVINO on a CPU behind a FastAPI service with
+a decision log and an operator panel.
+
+**Main result** on MVTec AD `leather`, the served model on held-out test images:
+- every defect caught (recall 1.000<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.image.recall.value -->, image AUROC 1.000<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.image.image_auroc.value -->), at the cost of false alarms on
+  12.5%<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.image.false_alarm_rate.value --> of good parts;
+- defect type right for 96.7%<!-- claim: results/classifier/leather/classifier.json#models.resnet18.accuracy.value --> of defects (95% interval 92.4%<!-- claim: results/classifier/leather/classifier.json#models.resnet18.accuracy.ci95.0 --> to 100.0%<!-- claim: results/classifier/leather/classifier.json#models.resnet18.accuracy.ci95.1 -->, cross-validated);
+- median 177.3<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_fp32.latency.median_ms --> ms per image on a desktop CPU.
+
+On the harder MVTec AD 2 `fabric` the same method misses 78.9%<!-- claim: results/metrics.json#patchcore/fabric.image.miss_rate.value --> of defects: see
+[Key results](#key-results).
+
+<img src="docs/demo.gif" width="760" alt="Operator panel: a good part, a cut and a colour defect, then the review queue and the daily report">
+
+*The operator panel, recorded by `scripts/make_demo_gif.py`: three parts inspected, then the
+review queue and the daily report of a replayed shift.*
+
+> **Status:** all seven phases are done (see [Project status](#project-status)). Every
+> result number in this README is checked against `results/*.json` in CI by
+> `scripts/check_readme_claims.py`.
 
 ## Problem
 
@@ -169,6 +187,7 @@ version (format, git commit, threshold).
 - `GET /review` lists the parts flagged for an operator. A part is flagged when its score
   falls in a band around the threshold, derived from the good validation scores, not set by
   hand (D49).
+- `GET /daily` returns the counts per day and the NOK parts per defect type.
 - `GET /health` reports the model version.
 
 ```bash
@@ -185,12 +204,33 @@ VQI_GIT_COMMIT=$(git rev-parse --short HEAD) docker compose up --build
 ```
 
 The image is large (size in D52), mostly the OpenVINO runtime, OpenCV and the SciPy, pandas and
-pyarrow stack that scikit-learn, matplotlib and Streamlit (for the Phase 7 panel) pull in.
+pyarrow stack that scikit-learn, matplotlib and Streamlit (for the operator panel) pull in.
 
 Settings live in `configs/serve/leather.yaml`; any key can be overridden with an
 environment variable such as `VQI_MODEL_FILE`. The model comes from
 `scripts/export_model.py` and is never committed; the defect-type model comes from
 `scripts/train_classifier.py`, and an empty `VQI_CLASSIFIER_FILE` serves without it.
+
+## Operator panel
+
+`vqi.panel` is a Streamlit page over the API, with no model or data of its own: it uploads
+a part to `POST /inspect` and shows the decision, the defect type, the image and its
+heatmap; it lists `GET /review` as the review queue; and it shows `GET /daily`, the counts
+per day and the NOK parts per defect type ([D57](docs/decisions.md)).
+
+```bash
+VQI_API_URL=http://localhost:8000 streamlit run src/vqi/panel.py
+```
+
+`docker compose up` also starts it on <http://localhost:8501>. The GIF at the top is not a
+screen recording: `scripts/make_demo_gif.py` starts the API on an empty log, replays the
+leather test set, drives the panel with a headless browser and turns the screenshots into
+the GIF, so it can be made again after any change ([D58](docs/decisions.md)).
+
+```bash
+pip install -e ".[serve,demo]" && playwright install chromium
+python scripts/make_demo_gif.py
+```
 
 ## Demo data
 
@@ -230,7 +270,7 @@ python scripts/evaluate.py --model configs/models/patchcore.yaml configs/leather
 | 4 | Defect-type classifier (ResNet18 vs HOG + SVM), hybrid pipeline | done |
 | 5 | ONNX / OpenVINO export, CPU latency | done |
 | 6 | FastAPI line integration, SQLite decision log, Docker | done |
-| 7 | Operator panel, final README | planned |
+| 7 | Operator panel, final README | done |
 
 Design decisions and negative results are logged in [docs/decisions.md](docs/decisions.md).
 
