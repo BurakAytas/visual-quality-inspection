@@ -53,6 +53,7 @@ from vqi.export import (
 from vqi.imageio import load_rgb, resize_to
 from vqi.latency import timed_map
 from vqi.metrics import physical_part, summarize
+from vqi.provenance import warn_if_dirty
 from vqi.threshold import save_threshold, threshold_record
 
 METRICS = ("image_auroc", "recall", "false_alarm_rate")
@@ -263,6 +264,7 @@ def main() -> None:
     # them and the export would crash. Write UTF-8 regardless of the console code page.
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace")
+    warn_if_dirty()
     failed = run(load_config(args.config, args.model), args.warmup)
     if failed:
         print(f"Finished; results written, but these formats FAILED: {', '.join(failed)}")

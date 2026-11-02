@@ -622,6 +622,11 @@ every fold. ResNet18's three errors are two cuts (taken for fold and poke) and o
 estimate. GPU training is not bit-for-bit deterministic, so a rerun can move an image or
 two.
 
+`classifier.json` records commit 957afa5 because training ran before the code was
+committed. The code that ran is in 71bb53e, the next commit, unchanged; it was not re-run,
+and the results stand. The training and export scripts now print a one-line warning when
+the working tree has uncommitted changes (`vqi.provenance`).
+
 The API classifies only NOK parts. The crop is taken from the uploaded image at the map
 peak, capped at the image size for small uploads. The type goes into the decision log's
 existing `defect_type` column; its probability is returned in the answer but not logged,

@@ -38,6 +38,7 @@ from vqi.config import Config, load_config
 from vqi.dataset_files import relative_to_category
 from vqi.overlay import save_overlay
 from vqi.perturb import perturbations
+from vqi.provenance import warn_if_dirty
 from vqi.threshold import save_threshold, threshold_record
 
 
@@ -174,6 +175,7 @@ def main() -> None:
     parser.add_argument("--config", required=True, type=Path, help="category config")
     parser.add_argument("--model", required=True, type=Path, help="configs/models/<model>.yaml")
     args = parser.parse_args()
+    warn_if_dirty()
     run(load_config(args.config, args.model))
 
 

@@ -43,6 +43,7 @@ from vqi.defect_type import (
 )
 from vqi.imageio import load_rgb, resize_to
 from vqi.inspection import OpenVINOModel
+from vqi.provenance import warn_if_dirty
 
 FOLDS = 5
 # ResNet18 recipe, fixed before any result was seen (there is no data left to tune it on).
@@ -252,6 +253,7 @@ def main() -> None:
     """Parse arguments and run."""
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--config", required=True, type=Path, help="category config")
+    warn_if_dirty()
     run(load_config(parser.parse_args().config))
 
 
