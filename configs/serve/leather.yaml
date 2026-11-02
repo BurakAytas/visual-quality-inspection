@@ -1,11 +1,11 @@
 # Inspection API for the leather demo model (scripts/export_model.py output).
 # Any key can be overridden with an environment variable VQI_<KEY>, e.g. VQI_MODEL_FILE.
 # To serve another product or format, copy this file and change the paths and keys.
-model_file: exports/patchcore/leather/openvino_int8/model.xml
-model_format: openvino_int8
+model_file: exports/patchcore/leather/openvino_fp32/weights/openvino/model.xml
+model_format: openvino_fp32
 thresholds_file: results/thresholds.json
-threshold_key: patchcore/leather/openvino_int8
-validation_scores: results/export/patchcore/leather/scores_openvino_int8.csv
+threshold_key: patchcore/leather/openvino_fp32
+validation_scores: results/export/patchcore/leather/scores_openvino_fp32.csv
 # About this share of good parts lands in the operator review queue (see D49).
 review_rate: 0.1
 db_path: logs/decisions.sqlite

@@ -17,7 +17,7 @@ from vqi.inspection import Inspector, OpenVINOModel, build_inspector
 
 ROOT = Path(__file__).parent.parent
 GOLDEN = json.loads(
-    (Path(__file__).parent / "golden" / "leather_openvino_int8.json").read_text(encoding="utf-8")
+    (Path(__file__).parent / "golden" / "leather_openvino_fp32.json").read_text(encoding="utf-8")
 )
 IMAGES = GOLDEN["images"]
 DATA = ROOT / "data" / "MVTec_AD"
@@ -59,3 +59,14 @@ def test_plain_runtime_matches_openvino_inferencer() -> None:
         expected = reference.predict(image)
         assert score == pytest.approx(float(np.ravel(expected.pred_score)[0]), abs=1e-4)
         np.testing.assert_allclose(anomaly_map, expected.anomaly_map.squeeze(), atol=1e-4)
+
+
+def test_anomaly_map_marks_the_defects(inspector: Inspector) -> None:
+    # The heatmap is coloured up to the threshold, so a defect's map must exceed it.
+    # The first INT8 export failed this: its map was clipped at about 27.5 (D50).
+    for item in IMAGES:
+        if "/good/" in item["image"]:
+            continue
+        image = resize_to(load_rgb(DATA / item["image"]), inspector.input_size)
+        _, anomaly_map = inspector.model(image)
+        assert anomaly_map.max() > inspector.threshold, item["image"]
