@@ -59,6 +59,34 @@ def check_input_shape(model_file: Path, size: tuple[int, int]) -> None:
         raise ValueError(f"{model_file} takes input {shape}, expected {expected}")
 
 
+def patchcore_head(model: ov.Model) -> list[str]:
+    """Names of the ops from the memory-bank search to the outputs, kept out of INT8.
+
+    Left to itself NNCF also quantized the search against the memory bank and the distance
+    map, whose range it calibrated on good images only, so the anomaly map was clipped below
+    the threshold (D50). Only the CNN in front of the search is quantized.
+    """
+    search = [
+        op
+        for op in model.get_ordered_ops()
+        if op.get_type_name() == "MatMul"
+        and any(
+            "memory_bank" in value.get_node().get_friendly_name() for value in op.input_values()
+        )
+    ]
+    if not search:
+        raise ValueError("no MatMul against the memory bank: not a PatchCore model?")
+    # The first is the nearest-neighbour search; later ones (re-weighting) lie behind it.
+    head, todo = set(), [search[0]]
+    while todo:
+        op = todo.pop()
+        if op.get_friendly_name() in head or op.get_type_name() == "Result":
+            continue
+        head.add(op.get_friendly_name())
+        todo += [target.get_node() for out in op.outputs() for target in out.get_target_inputs()]
+    return sorted(head)
+
+
 def quantize_openvino_int8(
     fp32_model_file: Path,
     calibration_images: Sequence[str],
@@ -76,7 +104,12 @@ def quantize_openvino_int8(
     calibration = nncf.Dataset(
         list(calibration_images), lambda path: load(path).transpose(2, 0, 1)[None]
     )
-    quantized = nncf.quantize(model, calibration, subset_size=len(calibration_images))
+    quantized = nncf.quantize(
+        model,
+        calibration,
+        subset_size=len(calibration_images),
+        ignored_scope=nncf.IgnoredScope(names=patchcore_head(model)),
+    )
     model_file = out_dir / INT8_FORMAT / "model.xml"
     model_file.parent.mkdir(parents=True, exist_ok=True)
     ov.save_model(quantized, model_file)
