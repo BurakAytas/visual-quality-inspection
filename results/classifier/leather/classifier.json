@@ -1,0 +1,227 @@
+{
+  "n_images": 92,
+  "classes": [
+    "color",
+    "cut",
+    "fold",
+    "glue",
+    "poke"
+  ],
+  "crop": {
+    "side_px": 256,
+    "input_side_px": 224,
+    "peak_from": "exports/patchcore/leather/openvino_fp32/weights/openvino/model.xml"
+  },
+  "settings": {
+    "folds": 5,
+    "resnet18": {
+      "epochs": 20,
+      "batch_size": 16,
+      "learning_rate": 0.0001
+    },
+    "hog_svm": {
+      "c_grid": [
+        0.1,
+        1.0,
+        10.0,
+        100.0
+      ],
+      "inner_folds": 3
+    },
+    "seed": 42,
+    "bootstrap_samples": 1000
+  },
+  "models": {
+    "resnet18": {
+      "accuracy": {
+        "value": 0.967391304347826,
+        "ci95": [
+          0.9239130434782609,
+          1.0
+        ]
+      },
+      "macro_f1": {
+        "value": 0.9666666666666666,
+        "ci95": [
+          0.9198274535471421,
+          1.0
+        ]
+      },
+      "per_class": {
+        "color": {
+          "n": 19,
+          "correct": 19,
+          "recall": 1.0
+        },
+        "cut": {
+          "n": 19,
+          "correct": 17,
+          "recall": 0.8947368421052632
+        },
+        "fold": {
+          "n": 17,
+          "correct": 17,
+          "recall": 1.0
+        },
+        "glue": {
+          "n": 19,
+          "correct": 19,
+          "recall": 1.0
+        },
+        "poke": {
+          "n": 18,
+          "correct": 17,
+          "recall": 0.9444444444444444
+        }
+      },
+      "confusion": {
+        "classes": [
+          "color",
+          "cut",
+          "fold",
+          "glue",
+          "poke"
+        ],
+        "rows_true_cols_predicted": [
+          [
+            19,
+            0,
+            0,
+            0,
+            0
+          ],
+          [
+            0,
+            17,
+            1,
+            0,
+            1
+          ],
+          [
+            0,
+            0,
+            17,
+            0,
+            0
+          ],
+          [
+            0,
+            0,
+            0,
+            19,
+            0
+          ],
+          [
+            0,
+            0,
+            1,
+            0,
+            17
+          ]
+        ]
+      }
+    },
+    "hog_svm": {
+      "accuracy": {
+        "value": 0.6413043478260869,
+        "ci95": [
+          0.5434782608695652,
+          0.7282608695652174
+        ]
+      },
+      "macro_f1": {
+        "value": 0.6367965367965367,
+        "ci95": [
+          0.5198594414969299,
+          0.7209235327223285
+        ]
+      },
+      "per_class": {
+        "color": {
+          "n": 19,
+          "correct": 14,
+          "recall": 0.7368421052631579
+        },
+        "cut": {
+          "n": 19,
+          "correct": 15,
+          "recall": 0.7894736842105263
+        },
+        "fold": {
+          "n": 17,
+          "correct": 10,
+          "recall": 0.5882352941176471
+        },
+        "glue": {
+          "n": 19,
+          "correct": 12,
+          "recall": 0.631578947368421
+        },
+        "poke": {
+          "n": 18,
+          "correct": 8,
+          "recall": 0.4444444444444444
+        }
+      },
+      "confusion": {
+        "classes": [
+          "color",
+          "cut",
+          "fold",
+          "glue",
+          "poke"
+        ],
+        "rows_true_cols_predicted": [
+          [
+            14,
+            2,
+            0,
+            1,
+            2
+          ],
+          [
+            0,
+            15,
+            1,
+            0,
+            3
+          ],
+          [
+            4,
+            1,
+            10,
+            2,
+            0
+          ],
+          [
+            4,
+            0,
+            2,
+            12,
+            1
+          ],
+          [
+            3,
+            5,
+            0,
+            2,
+            8
+          ]
+        ]
+      },
+      "chosen_c_per_fold": [
+        10.0,
+        10.0,
+        10.0,
+        10.0,
+        10.0
+      ]
+    }
+  },
+  "environment": {
+    "python": "3.12.9",
+    "torch": "2.14.1+cu130",
+    "device": "NVIDIA GeForce RTX 3070 Ti",
+    "git_commit": "957afa5563cfd505950e2402c0fb96e2d4a87245"
+  }
+}
