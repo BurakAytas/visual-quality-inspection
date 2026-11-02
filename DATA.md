@@ -19,6 +19,7 @@ share-alike). Consequences for this repository:
 - Model weights trained on this data are derived material. If they are published (as a
   GitHub release, never in git), they carry the same CC BY-NC-SA 4.0 licence.
 - The MIT licence of this repository covers the code only, not the data or weights.
+- `docs/demo.gif` shows MVTec AD leather test images, so it is under CC BY-NC-SA 4.0 too.
 
 ### Official licence text
 

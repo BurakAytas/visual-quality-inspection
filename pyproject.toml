@@ -47,6 +47,8 @@ serve = [
     "openvino==2026.4.1",
     "streamlit==1.66.1",
 ]
+# README demo GIF (scripts/make_demo_gif.py); then `playwright install chromium`.
+demo = ["playwright==1.64.0"]
 dev = ["pytest==9.2.0", "ruff==0.17.3"]
 
 [tool.setuptools.packages.find]
