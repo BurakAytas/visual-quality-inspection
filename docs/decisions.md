@@ -448,3 +448,25 @@ Fix, chosen to remove the dependence on dynamic axes altogether:
 Checked on CPU with the real architecture (wide_resnet50_2, random weights, 1024 x 1024
 synthetic leather images): all five formats exported with [1, 3, 1024, 1024] and were
 benchmarked. The failed run's zip was not committed.
+
+### D48. Phase 5 results, and file names in the export score files
+Run on the user's Windows PC at commit `47a17eb` (training on the RTX 3070 Ti, export and
+all timing on its Intel 12th-gen CPU, 12 logical cores): all five formats exported with a
+fixed [1, 3, 1024, 1024] input and were benchmarked. Image AUROC is 1.000 and the test
+false-alarm rate 12.5% for every format, so exporting and quantizing did not change which
+parts are accepted. Median CPU latency: PyTorch 315.7 ms, ONNX Runtime 229.8 ms, OpenVINO
+FP32 195.5 ms, FP16 192.1 ms, INT8 167.4 ms. INT8 helped less than expected (171 MB vs
+213 MB, about 15% faster than OpenVINO FP32); NNCF quantizes the CNN, while PatchCore's
+memory bank and nearest-neighbour search stay in floating point. That explanation is
+likely but not measured; profiling the search separately would confirm it.
+The export run retrained PatchCore, so its leather threshold and false-alarm rate (12.5%)
+differ from Phase 3's run (18.8%), the same run-to-run variation as in D40.
+
+Bug found while checking the zip: `export_model.py` wrote only the file name (`000.png`)
+into `scores_<format>.csv`, so images from different defect folders shared a name. The
+benchmark itself used full paths and is correct; recomputing every threshold, metric and
+interval from the CSVs (each `leather` image is its own physical part) matched
+`export.json` exactly. The script now writes the path from the category folder
+(`leather/test/cut/000.png`), as `train_anomaly.py` does; the helper moved to
+`vqi.dataset_files.relative_to_category`, with a test. The committed CSVs from this run
+keep bare file names.
