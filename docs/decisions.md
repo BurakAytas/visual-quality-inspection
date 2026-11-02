@@ -428,3 +428,23 @@ failure is printed with its traceback, stored as `"error"` in `export.json`, sho
 "failed" row in `export.md`, and the other formats continue; the script exits with code 1
 at the end if anything failed. Tested by forcing the ONNX export to fail: the other four
 formats were benchmarked and the exit code was 1.
+
+### D47. Export with one fixed input shape [1, 3, H, W], from the CPU
+The second Windows run (commit `4109a0d`) benchmarked only PyTorch; all four exports had
+input shape [2, 3, ?, ?]. anomalib traces dynamic axes with an example batch of 2 (torch
+specialises sizes 0 and 1), and on that machine, where the model was traced on the GPU,
+the batch axis came out fixed at that example size instead of dynamic. ONNX Runtime and
+OpenVINO then rejected a single image. The INT8 step failed for a related reason: it
+reshaped that batch-2 graph to batch 1, and OpenVINO's resize node could not follow.
+The Linux smoke runs (CPU tracing) had kept the axis dynamic, so they could not show this.
+Fix, chosen to remove the dependence on dynamic axes altogether:
+- the model is moved to the CPU before export, the deployment target and the tested path;
+- every format is exported with a fixed input [1, 3, H, W] (`input_size` = the category's
+  image size, `dynamic_shapes=None`), as a line camera always delivers one image of one
+  size; images of another size are resized first (`vqi.imageio.resize_to`);
+- `check_input_shape` reads each exported model and raises at once if the input is not
+  exactly [1, 3, H, W], so a wrong export fails before any benchmark;
+- the INT8 quantizer no longer reshapes; it quantizes the static FP32 model as exported.
+Checked on CPU with the real architecture (wide_resnet50_2, random weights, 1024 x 1024
+synthetic leather images): all five formats exported with [1, 3, 1024, 1024] and were
+benchmarked. The failed run's zip was not committed.

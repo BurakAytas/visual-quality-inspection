@@ -1,8 +1,10 @@
 """Export a trained anomalib model and score images with every exported format on CPU.
 
-Needs the ``[train]`` and ``[export]`` extras. Each scorer maps one image (H, W, C float
-in [0, 1]) to the model's raw anomaly score. The exported graphs contain the model's
-pre-processing, so the scorers take the image at its original resolution.
+Needs the ``[train]`` and ``[export]`` extras. Every format is exported with one fixed input
+shape, [1, 3, H, W], where H x W is the camera image size: dynamic axes were exported
+differently on different machines (D47). Each scorer maps one image (H, W, C float in
+[0, 1], already at that size) to the model's raw anomaly score; the exported graphs contain
+the model's own resize and normalisation.
 """
 
 from collections.abc import Callable, Sequence
@@ -29,12 +31,32 @@ ANOMALIB_FORMATS: dict[str, tuple[ExportType, CompressionType | None]] = {
 INT8_FORMAT = "openvino_int8"
 
 
-def export_format(engine: Engine, model: AnomalibModule, name: str, out_dir: Path) -> Path:
-    """Export ``model`` in one of ``ANOMALIB_FORMATS``; return the model file."""
+def export_format(
+    engine: Engine, model: AnomalibModule, name: str, out_dir: Path, size: tuple[int, int]
+) -> Path:
+    """Export ``model`` in one of ``ANOMALIB_FORMATS`` with input [1, 3, *size]."""
     export_type, compression = ANOMALIB_FORMATS[name]
-    return Path(
-        engine.export(model, export_type, export_root=out_dir / name, compression_type=compression)
+    model_file = Path(
+        engine.export(
+            model,
+            export_type,
+            export_root=out_dir / name,
+            input_size=size,
+            compression_type=compression,
+            # No dynamic axes: the example input is then exactly [1, 3, H, W].
+            onnx_kwargs={"dynamic_shapes": None},
+        )
     )
+    check_input_shape(model_file, size)
+    return model_file
+
+
+def check_input_shape(model_file: Path, size: tuple[int, int]) -> None:
+    """Fail early if an exported model does not take exactly one [1, 3, H, W] image."""
+    shape = ov.Core().read_model(model_file).input(0).partial_shape
+    expected = ov.PartialShape([1, 3, *size])
+    if shape != expected:
+        raise ValueError(f"{model_file} takes input {shape}, expected {expected}")
 
 
 def quantize_openvino_int8(
@@ -46,13 +68,11 @@ def quantize_openvino_int8(
     """Post-training INT8 quantization of the OpenVINO FP32 model with NNCF.
 
     anomalib 2.7.0's own INT8_PTQ reads ``model.input(0).shape`` whenever the batch axis is
-    static, which fails while height and width are still dynamic (seen on Windows). Here the
-    input is set to batch 1 with dynamic height and width, as the API uses it, and NNCF is
-    calibrated on the given good validation images, loaded one at a time.
+    static, which fails while other axes are dynamic (D46). Here the static [1, 3, H, W]
+    FP32 model is quantized as it is, calibrated on the good validation images, which
+    ``load`` returns at the model's input size, one at a time.
     """
-    core = ov.Core()
-    model = core.read_model(fp32_model_file)
-    model.reshape({model.input(0): ov.PartialShape([1, 3, -1, -1])})
+    model = ov.Core().read_model(fp32_model_file)
     calibration = nncf.Dataset(
         list(calibration_images), lambda path: load(path).transpose(2, 0, 1)[None]
     )

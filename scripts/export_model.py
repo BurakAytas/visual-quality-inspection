@@ -35,7 +35,6 @@ import onnxruntime
 import openvino
 import pandas as pd
 import torch
-from anomalib.data.utils import read_image
 from lightning.pytorch import seed_everything
 
 from vqi.anomaly import build_datamodule, build_engine, build_model
@@ -50,6 +49,7 @@ from vqi.export import (
     scorer_for,
     torch_scorer,
 )
+from vqi.imageio import load_rgb, resize_to
 from vqi.latency import timed_map
 from vqi.metrics import physical_part, summarize
 from vqi.threshold import save_threshold, threshold_record
@@ -57,9 +57,9 @@ from vqi.threshold import save_threshold, threshold_record
 METRICS = ("image_auroc", "recall", "false_alarm_rate")
 
 
-def load_image(path: str) -> np.ndarray:
-    """Decode an image to (H, W, C) float32 in [0, 1] (not timed)."""
-    return read_image(path, as_tensor=False).astype(np.float32)
+def _load_at_size(path: str, size: tuple[int, int]) -> np.ndarray:
+    """Decode an image and bring it to the export input size (not timed)."""
+    return resize_to(load_rgb(path), size)
 
 
 def cpu_name() -> str:
@@ -136,6 +136,7 @@ def benchmark(
     val: pd.DataFrame,
     test: pd.DataFrame,
     out_dir: Path,
+    load_image: Callable[[str], np.ndarray],
     warmup: int,
 ) -> dict:
     """Threshold from validation, then score and time the test images for one format."""
@@ -188,10 +189,20 @@ def run(config: Config, warmup: int) -> list[str]:
     if val.label_index.any():
         raise RuntimeError("Validation split contains defective images")
 
+    # Export from the CPU, the deployment target: tracing on a GPU fixed the batch axis
+    # to the example size 2 on the user's machine (D47), and CPU export is what was tested.
+    model = model.to("cpu")
+
+    # One fixed input size for every format: the camera image size of this category.
+    size = load_rgb(val.image_path.iloc[0]).shape[:2]
+    load_image = partial(_load_at_size, size=size)
+    print(f"{key}: exporting with fixed input [1, 3, {size[0]}, {size[1]}]", flush=True)
+
     failures: dict[str, str] = {}
     model_files: dict[str, Path] = {}
     for name in ANOMALIB_FORMATS:
-        path = guarded(name, partial(export_format, engine, model, name, exports_dir), failures)
+        step = partial(export_format, engine, model, name, exports_dir, size)
+        path = guarded(name, step, failures)
         if path is not None:
             model_files[name] = path
     if "openvino_fp32" in model_files:
@@ -215,7 +226,9 @@ def run(config: Config, warmup: int) -> list[str]:
 
         def step(name: str = name, model_file: Path | None = model_file) -> dict:
             scorer = torch_scorer(model) if model_file is None else scorer_for(name, model_file)
-            return benchmark(config, key, name, scorer, model_file, val, test, out_dir, warmup)
+            return benchmark(
+                config, key, name, scorer, model_file, val, test, out_dir, load_image, warmup
+            )
 
         result = guarded(name, step, failures)
         if result is not None:
@@ -223,7 +236,7 @@ def run(config: Config, warmup: int) -> list[str]:
     for name, error in failures.items():
         formats.setdefault(name, {"error": error})
 
-    result = {"environment": environment(), "formats": formats}
+    result = {"environment": environment(), "input_size": list(size), "formats": formats}
     (out_dir / "export.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     (out_dir / "export.md").write_text(markdown_table(formats), encoding="utf-8")
     return sorted(failures)
