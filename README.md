@@ -99,8 +99,8 @@ The PatchCore `leather` model was exported with a fixed input of one camera imag
 (1024<!-- claim: results/export/patchcore/leather/export.json#input_size.0 --> x 1024<!-- claim: results/export/patchcore/leather/export.json#input_size.1 --> px; the graph contains the model's own resize and normalisation).
 Every format gets its own threshold from the good validation images, because the exported
 resize differs slightly from training. Latency: CPU only, one image at a time, decoding
-excluded, 10<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.n_warmup --> warm-up runs, then all 124<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.n_timed --> test images; measured on an Intel 12th-gen desktop
-CPU with 12<!-- claim: results/export/patchcore/leather/export.json#environment.logical_cores --> logical cores (details in `export.json`).
+excluded, 10<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.n_warmup --> warm-up runs, then all 124<!-- claim: results/export/patchcore/leather/export.json#formats.openvino_int8.latency.n_timed --> test images; measured on an Intel Core
+`i5-12400F`<!-- claim: results/export/patchcore/leather/export.json#environment.cpu --> desktop CPU with 12<!-- claim: results/export/patchcore/leather/export.json#environment.logical_cores --> logical cores (details in `export.json`).
 
 <!-- results:start -->
 | Format | Size (MB) | Median ms/image | p95 ms/image | Image AUROC | False-alarm rate |

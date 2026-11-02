@@ -30,11 +30,15 @@ def run_check(tmp_path: Path, readme: str, metrics: dict) -> subprocess.Complete
         "<!-- results:end -->",
         "AU-PRO 0.30<!-- claim: results/m.json#fabric.aupro_0.3 -->",
         "CI high 0.95<!-- claim: results/m.json#fabric.ci.1 -->",
+        "on an `i5-12400F`<!-- claim: results/m.json#cpu -->",
     ],
-    ids=["plain", "percent", "results-block", "dotted-key", "list-index"],
+    ids=["plain", "percent", "results-block", "dotted-key", "list-index", "text"],
 )
 def test_matching_claims_pass(tmp_path: Path, readme: str) -> None:
-    metrics = {"fabric": {"auroc": 0.87312, "miss": 0.0421, "aupro_0.3": 0.3, "ci": [0.8, 0.95]}}
+    metrics = {
+        "fabric": {"auroc": 0.87312, "miss": 0.0421, "aupro_0.3": 0.3, "ci": [0.8, 0.95]},
+        "cpu": "12th Gen Intel(R) Core(TM) i5-12400F",
+    }
     result = run_check(tmp_path, readme, metrics)
     assert result.returncode == 0, result.stderr
 
@@ -46,11 +50,20 @@ def test_matching_claims_pass(tmp_path: Path, readme: str) -> None:
         "AUROC 0.873<!-- claim: results/m.json#fabric.missing_key -->",
         "AUROC 0.873<!-- claim: results/nope.json#fabric.auroc -->",
         "<!-- results:start -->| 0.95 |<!-- results:end -->",
+        "on an `i7-12700`<!-- claim: results/m.json#cpu -->",
+        "on an `i5-12400F`<!-- claim: results/m.json#fabric.auroc -->",
     ],
-    ids=["wrong-value", "missing-key", "missing-file", "hand-typed-in-results-block"],
+    ids=[
+        "wrong-value",
+        "missing-key",
+        "missing-file",
+        "hand-typed-in-results-block",
+        "wrong-text",
+        "text-against-number",
+    ],
 )
 def test_bad_claims_fail(tmp_path: Path, readme: str) -> None:
-    result = run_check(tmp_path, readme, {"fabric": {"auroc": 0.87312}})
+    result = run_check(tmp_path, readme, {"fabric": {"auroc": 0.87312}, "cpu": "i5-12400F"})
     assert result.returncode == 1
 
 

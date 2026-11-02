@@ -65,6 +65,13 @@ def _load_at_size(path: str, size: tuple[int, int]) -> np.ndarray:
 
 def cpu_name() -> str:
     """Human-readable CPU model, so latency numbers can be compared fairly."""
+    if platform.system() == "Windows":  # platform.processor() gives only the family there
+        import winreg
+
+        key = winreg.OpenKey(
+            winreg.HKEY_LOCAL_MACHINE, r"HARDWARE\DESCRIPTION\System\CentralProcessor\0"
+        )
+        return winreg.QueryValueEx(key, "ProcessorNameString")[0].strip()
     if platform.system() == "Linux":
         for line in Path("/proc/cpuinfo").read_text().splitlines():
             if line.startswith("model name"):

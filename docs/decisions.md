@@ -572,3 +572,12 @@ the bulk is the OpenVINO runtime, OpenCV and the SciPy, pandas and pyarrow stack
 scikit-learn, matplotlib and Streamlit pull in (in the Windows venv the largest of these are
 openvino 248 MB, scipy 115, OpenCV 113, pyarrow 90 and pandas 70). Shrinking it would
 mean a separate API extra without Streamlit and matplotlib; not done.
+
+### D53. The CPU name in `export.json`, and text claims in the README
+On Windows `platform.processor()` gives only the family string (`Intel64 Family 6 Model
+151 ...`), so `export.json` did not name the CPU the latency was measured on. `cpu_name()`
+now reads `ProcessorNameString` from the registry on Windows. The current `export.json`
+was not re-run for this; its `environment.cpu` was filled in with the same function on the
+same machine (`12th Gen Intel(R) Core(TM) i5-12400F`), the only field changed. So the README
+can state the model with a source, `check_readme_claims.py` now also accepts text claims:
+backticked text followed by a claim marker must appear in the JSON string it names.
