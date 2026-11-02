@@ -7,6 +7,7 @@ result does not depend on loading order or the number of data-loader workers.
 
 import zlib
 from collections.abc import Callable
+from functools import partial
 
 import cv2
 import numpy as np
@@ -35,11 +36,15 @@ def noise(image: np.ndarray, std: float, seed: int) -> np.ndarray:
 
 
 def perturbations(config: RobustnessConfig, seed: int) -> dict[str, Perturbation]:
-    """All test conditions except the clean one, keyed by a short name for result files."""
+    """All test conditions except the clean one, keyed by a short name for result files.
+
+    ``functools.partial`` of module-level functions, not lambdas: data-loader workers on
+    Windows receive the perturbation by pickling, and lambdas cannot be pickled.
+    """
     conditions: dict[str, Perturbation] = {
-        f"brightness_{factor:g}": lambda img, f=factor: brightness(img, f)
+        f"brightness_{factor:g}": partial(brightness, factor=factor)
         for factor in config.brightness_factors
     }
-    conditions["blur"] = lambda img: blur(img, config.blur_sigma_fraction)
-    conditions["noise"] = lambda img: noise(img, config.noise_std, seed)
+    conditions["blur"] = partial(blur, sigma_fraction=config.blur_sigma_fraction)
+    conditions["noise"] = partial(noise, std=config.noise_std, seed=seed)
     return conditions

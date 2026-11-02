@@ -1,3 +1,5 @@
+import pickle
+
 import numpy as np
 import pytest
 
@@ -37,3 +39,10 @@ def test_perturbation_names_follow_the_config() -> None:
     conditions = perturbations(config, seed=0)
     assert list(conditions) == ["brightness_0.7", "brightness_1.3", "blur", "noise"]
     assert np.allclose(conditions["brightness_1.3"](IMAGE), brightness(IMAGE, 1.3))
+
+
+def test_perturbations_survive_pickling() -> None:
+    # Data-loader workers on Windows get the perturbation by pickling it.
+    for name, perturbation in perturbations(RobustnessConfig(), seed=7).items():
+        restored = pickle.loads(pickle.dumps(perturbation))
+        assert np.array_equal(restored(IMAGE), perturbation(IMAGE)), name
