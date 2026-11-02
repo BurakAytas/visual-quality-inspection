@@ -98,6 +98,50 @@ class Config:
     results_dir: Path
 
 
+@dataclass(frozen=True)
+class ServeConfig:
+    """Inspection API: which exported model to serve and which threshold to apply."""
+
+    model_file: Path  # OpenVINO model.xml
+    model_format: str  # e.g. openvino_int8, part of the model version
+    thresholds_file: Path
+    threshold_key: str  # e.g. patchcore/leather/openvino_int8
+    validation_scores: Path  # this format's scores CSV from scripts/export_model.py
+    review_rate: float  # share of good validation parts sent to operator review
+    db_path: Path
+
+
+# Environment variables that override a serve config key: VQI_MODEL_FILE, VQI_DB_PATH, ...
+SERVE_ENV_PREFIX = "VQI_"
+
+
+def load_serve_config(path: str | Path, env: dict[str, str] | None = None) -> ServeConfig:
+    """Load the API config; ``VQI_<KEY>`` in ``env`` (default: none) overrides a key.
+
+    Raises:
+        ValueError: if a key is missing, unknown, or has an invalid value.
+    """
+    raw = _read_yaml(Path(path))
+    names = {f.name for f in fields(ServeConfig)}
+    _check_keys("serve", raw, ServeConfig)
+    for name in names:
+        override = (env or {}).get(SERVE_ENV_PREFIX + name.upper())
+        if override is not None:
+            raw[name] = override
+    missing = names - set(raw)
+    if missing:
+        raise ValueError(f"Missing keys in serve config: {sorted(missing)}")
+    return ServeConfig(
+        model_file=Path(raw["model_file"]),
+        model_format=str(raw["model_format"]),
+        thresholds_file=Path(raw["thresholds_file"]),
+        threshold_key=str(raw["threshold_key"]),
+        validation_scores=Path(raw["validation_scores"]),
+        review_rate=_rate("review_rate", float(raw["review_rate"])),
+        db_path=Path(raw["db_path"]),
+    )
+
+
 def _deep_merge(base: dict[str, Any], override: dict[str, Any]) -> dict[str, Any]:
     """Return ``base`` updated with ``override``; nested dicts are merged key by key."""
     merged = dict(base)

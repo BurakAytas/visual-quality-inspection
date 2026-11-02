@@ -34,6 +34,24 @@ def threshold_for_false_alarm_rate(
     return float(np.sort(scores)[scores.size - 1 - allowed_false_alarms])
 
 
+def review_band(
+    normal_scores: np.ndarray, threshold: float, review_rate: float
+) -> tuple[float, float]:
+    """Scores in ``(lower, upper]`` go to an operator; the decision itself is unchanged.
+
+    ``lower`` is the score that only ``review_rate`` of the good validation images exceed
+    (the same quantile rule as the threshold), so about that share of good parts is
+    reviewed. The band is mirrored above the threshold, because a part just above it is
+    as uncertain as one just below.
+    """
+    if not 0 < review_rate < 1:
+        raise ValueError("review_rate must be between 0 and 1")
+    lower = threshold_for_false_alarm_rate(normal_scores, review_rate)
+    if lower > threshold:
+        raise ValueError("review_rate must be larger than the threshold's false-alarm rate")
+    return lower, threshold + (threshold - lower)
+
+
 def threshold_record(normal_scores: np.ndarray, target_false_alarm_rate: float) -> dict:
     """Threshold plus the facts needed to audit it later."""
     scores = np.asarray(normal_scores, dtype=float)

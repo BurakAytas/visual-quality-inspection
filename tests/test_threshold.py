@@ -7,6 +7,7 @@ import pytest
 
 from vqi.threshold import (
     load_threshold,
+    review_band,
     save_threshold,
     threshold_for_false_alarm_rate,
     threshold_record,
@@ -63,3 +64,19 @@ def test_record_is_saved_with_audit_fields_and_keeps_other_keys(tmp_path: Path) 
     assert record["quantile"] == pytest.approx(0.99)
     assert record["validation_false_alarm_rate"] <= 0.01
     assert load_threshold(path, "patchcore/fabric") == record["threshold"] == 197.0
+
+
+def test_review_band_sends_about_review_rate_of_good_parts_to_review() -> None:
+    scores = np.arange(100, dtype=float)
+    threshold = threshold_for_false_alarm_rate(scores, 0.01)
+    lower, upper = review_band(scores, threshold, 0.1)
+    assert (scores > lower).mean() == 0.1
+    assert upper - threshold == threshold - lower  # mirrored above the threshold
+
+
+def test_review_band_must_be_wider_than_the_threshold_rate() -> None:
+    scores = np.arange(100, dtype=float)
+    with pytest.raises(ValueError):
+        review_band(scores, threshold_for_false_alarm_rate(scores, 0.1), 0.01)
+    with pytest.raises(ValueError):
+        review_band(scores, 99.0, 1.0)
