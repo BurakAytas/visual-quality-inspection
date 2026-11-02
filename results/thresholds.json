@@ -76,7 +76,7 @@
     "quantile": 0.99,
     "score": "raw anomaly score (anomalib normalization disabled)",
     "target_false_alarm_rate": 0.01,
-    "threshold": 30.676389694213867,
+    "threshold": 29.627534866333008,
     "validation_false_alarm_rate": 0.0
   },
   "patchcore/leather/torch_fp32": {
