@@ -24,6 +24,17 @@ REQUIRED_DIRS = {
 }
 
 
+def relative_to_category(path: str, category: str) -> str:
+    """Path from the category folder on, e.g. ``leather/test/cut/000.png``.
+
+    Result files keep these instead of absolute paths: no local machine paths end up in the
+    repository, and the defect folder stays part of the name (``000.png`` alone is ambiguous).
+    """
+    parts = Path(path).parts
+    start = len(parts) - 1 - parts[::-1].index(category)
+    return "/".join(parts[start:])
+
+
 def missing_dirs(category_dir: Path, dataset_name: str) -> list[str]:
     """Return the required sub-folders that are missing or empty."""
     missing = []

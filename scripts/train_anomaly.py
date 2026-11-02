@@ -35,16 +35,10 @@ from vqi.anomaly import (
     predict,
 )
 from vqi.config import Config, load_config
+from vqi.dataset_files import relative_to_category
 from vqi.overlay import save_overlay
 from vqi.perturb import perturbations
 from vqi.threshold import save_threshold, threshold_record
-
-
-def relative_to_category(path: str, category: str) -> str:
-    """Path from the category folder on, so no local machine paths end up in results."""
-    parts = Path(path).parts
-    start = len(parts) - 1 - parts[::-1].index(category)
-    return "/".join(parts[start:])
 
 
 def write_scores(path: Path, category: str, splits: dict[str, Predictions]) -> None:

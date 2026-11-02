@@ -4,7 +4,13 @@ from pathlib import Path
 import pytest
 
 from vqi.config import DatasetConfig
-from vqi.dataset_files import REQUIRED_DIRS, find_category_dir, install_from_local, missing_dirs
+from vqi.dataset_files import (
+    REQUIRED_DIRS,
+    find_category_dir,
+    install_from_local,
+    missing_dirs,
+    relative_to_category,
+)
 
 
 def make_fake_category(root: Path, dataset_name: str) -> Path:
@@ -81,3 +87,12 @@ def test_install_from_folder_of_archives_picks_the_category_archive(tmp_path: Pa
 
     assert target == tmp_path / "data" / "MVTec_AD" / "carpet"
     assert missing_dirs(target, "mvtec_ad") == []
+
+
+def test_relative_to_category_keeps_the_defect_folder() -> None:
+    path = "/content/data/MVTec_AD/leather/test/cut/000.png"
+    assert relative_to_category(path, "leather") == "leather/test/cut/000.png"
+    # the last occurrence counts if the category name also appears higher up
+    assert relative_to_category("/x/leather/data/leather/test/good/1.png", "leather") == (
+        "leather/test/good/1.png"
+    )

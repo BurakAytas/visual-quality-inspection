@@ -39,6 +39,7 @@ from lightning.pytorch import seed_everything
 
 from vqi.anomaly import build_datamodule, build_engine, build_model
 from vqi.config import Config, load_config
+from vqi.dataset_files import relative_to_category
 from vqi.export import (
     ANOMALIB_FORMATS,
     INT8_FORMAT,
@@ -88,12 +89,14 @@ def environment() -> dict:
     }
 
 
-def write_scores(path: Path, rows: list[tuple[str, str, int, float]]) -> None:
-    """One CSV row per image: split, image file name, label, raw score."""
+def write_scores(path: Path, category: str, rows: list[tuple[str, str, int, float]]) -> None:
+    """One CSV row per image: split, image path from the category folder, label, raw score."""
     with path.open("w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["split", "image", "label", "score"])
-        writer.writerows((s, Path(p).name, y, f"{v:.6f}") for s, p, y, v in rows)
+        writer.writerows(
+            (s, relative_to_category(p, category), y, f"{v:.6f}") for s, p, y, v in rows
+        )
 
 
 def markdown_table(formats: dict) -> str:
@@ -160,7 +163,7 @@ def benchmark(
     rows += [
         ("test", p, int(y), s) for p, y, s in zip(test.image_path, labels, test_scores, strict=True)
     ]
-    write_scores(out_dir / f"scores_{name}.csv", rows)
+    write_scores(out_dir / f"scores_{name}.csv", config.dataset.category, rows)
     auroc = image["image_auroc"]["value"]
     print(f"{key} {name}: {latency['median_ms']:.1f} ms/image, AUROC {auroc:.3f}", flush=True)
     return {
