@@ -24,19 +24,32 @@ import os
 import platform
 import subprocess
 import sys
+import traceback
+from collections.abc import Callable
+from functools import partial
 from pathlib import Path
 
 import anomalib
 import numpy as np
 import onnxruntime
 import openvino
+import pandas as pd
 import torch
 from anomalib.data.utils import read_image
 from lightning.pytorch import seed_everything
 
 from vqi.anomaly import build_datamodule, build_engine, build_model
 from vqi.config import Config, load_config
-from vqi.export import export_all, model_size_mb, scorer_for, torch_scorer
+from vqi.export import (
+    ANOMALIB_FORMATS,
+    INT8_FORMAT,
+    Scorer,
+    export_format,
+    model_size_mb,
+    quantize_openvino_int8,
+    scorer_for,
+    torch_scorer,
+)
 from vqi.latency import timed_map
 from vqi.metrics import physical_part, summarize
 from vqi.threshold import save_threshold, threshold_record
@@ -84,13 +97,16 @@ def write_scores(path: Path, rows: list[tuple[str, str, int, float]]) -> None:
 
 
 def markdown_table(formats: dict) -> str:
-    """Format x size x latency x accuracy."""
+    """Format x size x latency x accuracy; failed formats keep a row with the error."""
     lines = [
         "| Format | Size (MB) | Median ms/image | p95 ms/image | Image AUROC | Recall "
         "| False-alarm rate |",
         "|---|---|---|---|---|---|---|",
     ]
     for name, f in formats.items():
+        if "error" in f:
+            lines.append(f"| {name} | failed: {f['error'].splitlines()[0][:80]} ||||||")
+            continue
         size = "-" if f["size_mb"] is None else f"{f['size_mb']:.0f}"
         auroc, recall, far = (f["image"][m] for m in METRICS)
         lines.append(
@@ -100,66 +116,117 @@ def markdown_table(formats: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
-def run(config: Config, warmup: int) -> None:
-    """Fit, export, then score and time every format on CPU."""
+def guarded(name: str, step: Callable[[], dict | Path], failures: dict[str, str]) -> object:
+    """Run one format's step; on error record it and return None, so other formats go on."""
+    try:
+        return step()
+    except Exception as exc:  # one broken format must not stop the others
+        traceback.print_exc()
+        failures[name] = f"{type(exc).__name__}: {exc}"
+        print(f"{name}: FAILED, continuing with the other formats", flush=True)
+        return None
+
+
+def benchmark(
+    config: Config,
+    key: str,
+    name: str,
+    scorer: Scorer,
+    model_file: Path | None,
+    val: pd.DataFrame,
+    test: pd.DataFrame,
+    out_dir: Path,
+    warmup: int,
+) -> dict:
+    """Threshold from validation, then score and time the test images for one format."""
+    val_scores, _ = timed_map(scorer, val.image_path, load=load_image, warmup=0)
+    record = threshold_record(np.array(val_scores), config.threshold.target_false_alarm_rate)
+    save_threshold(config.results_dir / "thresholds.json", f"{key}/{name}", record)
+
+    labels = test.label_index.to_numpy().astype(int)
+    test_scores, latency = timed_map(scorer, test.image_path, load=load_image, warmup=warmup)
+    image = summarize(
+        np.array(test_scores),
+        labels,
+        record["threshold"],
+        config.evaluation.fixed_false_alarm_rate,
+        config.evaluation.bootstrap_samples,
+        config.seed,
+        groups=np.array([physical_part(p) for p in test.image_path]),
+        names=METRICS,
+    )
+    rows = [("validation", p, 0, s) for p, s in zip(val.image_path, val_scores, strict=True)]
+    rows += [
+        ("test", p, int(y), s) for p, y, s in zip(test.image_path, labels, test_scores, strict=True)
+    ]
+    write_scores(out_dir / f"scores_{name}.csv", rows)
+    auroc = image["image_auroc"]["value"]
+    print(f"{key} {name}: {latency['median_ms']:.1f} ms/image, AUROC {auroc:.3f}", flush=True)
+    return {
+        "size_mb": None if model_file is None else model_size_mb(model_file),
+        "threshold": record["threshold"],
+        "n_validation_images": record["n_validation_images"],
+        "image": {m: image[m] for m in METRICS},
+        "latency": latency,
+    }
+
+
+def run(config: Config, warmup: int) -> list[str]:
+    """Fit, export, then score and time every format on CPU; return the failed formats."""
     seed_everything(config.seed, workers=True)
     key = f"{config.model.key}/{config.dataset.category}"
     out_dir = config.results_dir / "export" / key
     out_dir.mkdir(parents=True, exist_ok=True)
+    exports_dir = Path("exports") / key
 
     datamodule = build_datamodule(config)
     model = build_model(config)
     engine = build_engine(config, Path("runs") / "export" / key)
     engine.fit(model=model, datamodule=datamodule)
-    paths = export_all(engine, model, datamodule, Path("exports") / key)
-
     val = datamodule.val_data.samples
     test = datamodule.test_data.samples
     if val.label_index.any():
         raise RuntimeError("Validation split contains defective images")
-    labels = test.label_index.to_numpy().astype(int)
-    groups = np.array([physical_part(p) for p in test.image_path])
 
-    # The PyTorch baseline goes last: torch_scorer moves the model to the CPU.
-    scorers = {name: (scorer_for(name, path), path) for name, path in paths.items()}
-    scorers = {"torch_fp32": (torch_scorer(model), None), **scorers}
-
-    formats = {}
-    for name, (scorer, path) in scorers.items():
-        val_scores, _ = timed_map(scorer, val.image_path, load=load_image, warmup=0)
-        record = threshold_record(np.array(val_scores), config.threshold.target_false_alarm_rate)
-        save_threshold(config.results_dir / "thresholds.json", f"{key}/{name}", record)
-
-        test_scores, latency = timed_map(scorer, test.image_path, load=load_image, warmup=warmup)
-        image = summarize(
-            np.array(test_scores),
-            labels,
-            record["threshold"],
-            config.evaluation.fixed_false_alarm_rate,
-            config.evaluation.bootstrap_samples,
-            config.seed,
-            groups=groups,
-            names=METRICS,
+    failures: dict[str, str] = {}
+    model_files: dict[str, Path] = {}
+    for name in ANOMALIB_FORMATS:
+        path = guarded(name, partial(export_format, engine, model, name, exports_dir), failures)
+        if path is not None:
+            model_files[name] = path
+    if "openvino_fp32" in model_files:
+        step = partial(
+            quantize_openvino_int8,
+            model_files["openvino_fp32"],
+            list(val.image_path),
+            load_image,
+            exports_dir,
         )
-        rows = [("validation", p, 0, s) for p, s in zip(val.image_path, val_scores, strict=True)]
-        rows += [
-            ("test", p, int(y), s)
-            for p, y, s in zip(test.image_path, labels, test_scores, strict=True)
-        ]
-        write_scores(out_dir / f"scores_{name}.csv", rows)
-        formats[name] = {
-            "size_mb": None if path is None else model_size_mb(path),
-            "threshold": record["threshold"],
-            "n_validation_images": record["n_validation_images"],
-            "image": {m: image[m] for m in METRICS},
-            "latency": latency,
-        }
-        auroc = image["image_auroc"]["value"]
-        print(f"{key} {name}: {latency['median_ms']:.1f} ms/image, AUROC {auroc:.3f}")
+        path = guarded(INT8_FORMAT, step, failures)
+        if path is not None:
+            model_files[INT8_FORMAT] = path
+    else:
+        failures[INT8_FORMAT] = "skipped: needs the openvino_fp32 export"
+
+    # The PyTorch baseline goes first; torch_scorer moves the model to the CPU, so it is
+    # built only after all exports are done.
+    formats: dict[str, dict] = {}
+    for name, model_file in [("torch_fp32", None), *model_files.items()]:
+
+        def step(name: str = name, model_file: Path | None = model_file) -> dict:
+            scorer = torch_scorer(model) if model_file is None else scorer_for(name, model_file)
+            return benchmark(config, key, name, scorer, model_file, val, test, out_dir, warmup)
+
+        result = guarded(name, step, failures)
+        if result is not None:
+            formats[name] = result
+    for name, error in failures.items():
+        formats.setdefault(name, {"error": error})
 
     result = {"environment": environment(), "formats": formats}
     (out_dir / "export.json").write_text(json.dumps(result, indent=2) + "\n", encoding="utf-8")
     (out_dir / "export.md").write_text(markdown_table(formats), encoding="utf-8")
+    return sorted(failures)
 
 
 def main() -> None:
@@ -173,7 +240,10 @@ def main() -> None:
     # them and the export would crash. Write UTF-8 regardless of the console code page.
     for stream in (sys.stdout, sys.stderr):
         stream.reconfigure(encoding="utf-8", errors="replace")
-    run(load_config(args.config, args.model), args.warmup)
+    failed = run(load_config(args.config, args.model), args.warmup)
+    if failed:
+        print(f"Finished; results written, but these formats FAILED: {', '.join(failed)}")
+        sys.exit(1)
 
 
 if __name__ == "__main__":

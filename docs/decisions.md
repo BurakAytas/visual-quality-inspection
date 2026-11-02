@@ -412,3 +412,19 @@ well and which Phase 4's defect-type labels come from.
   stderr to UTF-8 at start-up (`errors="replace"`), so no `PYTHONUTF8=1` is needed.
   Found by the user on the first local run; Linux consoles are UTF-8, so the CPU smoke run
   could not show it.
+
+### D46. Own INT8 quantization, and one failing format no longer stops the benchmark
+On Windows anomalib's `INT8_PTQ` crashed in `_post_training_quantization_ov` with
+`to_shape was called on a dynamic shape`. Reproduced here: anomalib 2.7.0 reads
+`model.input(0).shape` whenever the batch axis is static, but `.shape` needs every axis
+static, and the exported model keeps height and width dynamic. The Windows export had a
+static batch axis; the Linux smoke export had a dynamic one, so the smoke run never reached
+that line. Fix: INT8 is no longer exported by anomalib. `vqi.export.quantize_openvino_int8`
+reads the OpenVINO FP32 model, sets its input to batch 1 with dynamic height and width (the
+way the API calls it), and runs `nncf.quantize` on the good validation images, loaded one at
+a time. Whatever shape the export produces, the quantizer gets the same input.
+`scripts/export_model.py` now wraps every export and every benchmark in its own guard: a
+failure is printed with its traceback, stored as `"error"` in `export.json`, shown as a
+"failed" row in `export.md`, and the other formats continue; the script exits with code 1
+at the end if anything failed. Tested by forcing the ONNX export to fail: the other four
+formats were benchmarked and the exit code was 1.
