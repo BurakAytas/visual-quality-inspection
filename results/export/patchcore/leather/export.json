@@ -1,0 +1,195 @@
+{
+  "environment": {
+    "cpu": "Intel64 Family 6 Model 151 Stepping 5, GenuineIntel",
+    "logical_cores": 12,
+    "torch_threads": 6,
+    "os": "Windows-11-10.0.26200-SP0",
+    "python": "3.12.9",
+    "anomalib": "2.7.0",
+    "torch": "2.14.1+cu130",
+    "onnxruntime": "1.31.1",
+    "openvino": "2026.4.1-22982-e213a147257-releases/2026/4",
+    "git_commit": "47a17eba82a0c80a6adab01c85c5fa632fe47916"
+  },
+  "input_size": [
+    1024,
+    1024
+  ],
+  "formats": {
+    "torch_fp32": {
+      "size_mb": null,
+      "threshold": 30.399272918701172,
+      "n_validation_images": 49,
+      "image": {
+        "image_auroc": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "recall": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "false_alarm_rate": {
+          "value": 0.125,
+          "ci95": [
+            0.03125,
+            0.25
+          ]
+        }
+      },
+      "latency": {
+        "median_ms": 315.69280000258004,
+        "p95_ms": 438.5438850011269,
+        "mean_ms": 334.90872661346776,
+        "n_timed": 124,
+        "n_warmup": 10
+      }
+    },
+    "onnx_fp32": {
+      "size_mb": 212.65697574615479,
+      "threshold": 30.39921760559082,
+      "n_validation_images": 49,
+      "image": {
+        "image_auroc": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "recall": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "false_alarm_rate": {
+          "value": 0.125,
+          "ci95": [
+            0.03125,
+            0.25
+          ]
+        }
+      },
+      "latency": {
+        "median_ms": 229.84200000064448,
+        "p95_ms": 302.6849599998968,
+        "mean_ms": 239.8096846776635,
+        "n_timed": 124,
+        "n_warmup": 10
+      }
+    },
+    "openvino_fp32": {
+      "size_mb": 212.61265563964844,
+      "threshold": 30.399272918701172,
+      "n_validation_images": 49,
+      "image": {
+        "image_auroc": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "recall": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "false_alarm_rate": {
+          "value": 0.125,
+          "ci95": [
+            0.03125,
+            0.25
+          ]
+        }
+      },
+      "latency": {
+        "median_ms": 195.47954999870853,
+        "p95_ms": 251.18294999629143,
+        "mean_ms": 204.16957338702267,
+        "n_timed": 124,
+        "n_warmup": 10
+      }
+    },
+    "openvino_fp16": {
+      "size_mb": 106.48606300354004,
+      "threshold": 30.38650131225586,
+      "n_validation_images": 49,
+      "image": {
+        "image_auroc": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "recall": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "false_alarm_rate": {
+          "value": 0.125,
+          "ci95": [
+            0.03125,
+            0.25
+          ]
+        }
+      },
+      "latency": {
+        "median_ms": 192.05040000088047,
+        "p95_ms": 231.86167000021666,
+        "mean_ms": 196.35817580655709,
+        "n_timed": 124,
+        "n_warmup": 10
+      }
+    },
+    "openvino_int8": {
+      "size_mb": 171.30352401733398,
+      "threshold": 30.676389694213867,
+      "n_validation_images": 49,
+      "image": {
+        "image_auroc": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "recall": {
+          "value": 1.0,
+          "ci95": [
+            1.0,
+            1.0
+          ]
+        },
+        "false_alarm_rate": {
+          "value": 0.125,
+          "ci95": [
+            0.03125,
+            0.25
+          ]
+        }
+      },
+      "latency": {
+        "median_ms": 167.35479999988456,
+        "p95_ms": 227.45033500104907,
+        "mean_ms": 176.23128629020357,
+        "n_timed": 124,
+        "n_warmup": 10
+      }
+    }
+  }
+}

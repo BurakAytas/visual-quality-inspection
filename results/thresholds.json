@@ -46,5 +46,45 @@
     "target_false_alarm_rate": 0.01,
     "threshold": 27.78059196472168,
     "validation_false_alarm_rate": 0.0
+  },
+  "patchcore/leather/onnx_fp32": {
+    "n_validation_images": 49,
+    "quantile": 0.99,
+    "score": "raw anomaly score (anomalib normalization disabled)",
+    "target_false_alarm_rate": 0.01,
+    "threshold": 30.39921760559082,
+    "validation_false_alarm_rate": 0.0
+  },
+  "patchcore/leather/openvino_fp16": {
+    "n_validation_images": 49,
+    "quantile": 0.99,
+    "score": "raw anomaly score (anomalib normalization disabled)",
+    "target_false_alarm_rate": 0.01,
+    "threshold": 30.38650131225586,
+    "validation_false_alarm_rate": 0.0
+  },
+  "patchcore/leather/openvino_fp32": {
+    "n_validation_images": 49,
+    "quantile": 0.99,
+    "score": "raw anomaly score (anomalib normalization disabled)",
+    "target_false_alarm_rate": 0.01,
+    "threshold": 30.399272918701172,
+    "validation_false_alarm_rate": 0.0
+  },
+  "patchcore/leather/openvino_int8": {
+    "n_validation_images": 49,
+    "quantile": 0.99,
+    "score": "raw anomaly score (anomalib normalization disabled)",
+    "target_false_alarm_rate": 0.01,
+    "threshold": 30.676389694213867,
+    "validation_false_alarm_rate": 0.0
+  },
+  "patchcore/leather/torch_fp32": {
+    "n_validation_images": 49,
+    "quantile": 0.99,
+    "score": "raw anomaly score (anomalib normalization disabled)",
+    "target_false_alarm_rate": 0.01,
+    "threshold": 30.399272918701172,
+    "validation_false_alarm_rate": 0.0
   }
 }
