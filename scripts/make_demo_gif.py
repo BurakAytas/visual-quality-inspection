@@ -28,14 +28,15 @@ from playwright.sync_api import Page, expect, sync_playwright
 from vqi.provenance import warn_if_dirty
 
 TEST_DIR = Path("data/MVTec_AD/leather/test")
-# Inspected on camera: a good part, then two defect types whose marks are easy to see at GIF
-# size. Picked by eye; good/000 was not used because it is a false alarm (score above the
+# Inspected on camera: two defect types whose marks are easy to see at GIF size, then a good
+# part. A NOK result comes first so the GIF opens on a heatmap, not on an empty upload form.
+# Picked by eye; good/000 was not used because it is a false alarm (score above the
 # threshold), which the review queue shows instead.
-SHOWN = ["good/005.png", "cut/003.png", "color/000.png"]
+SHOWN = ["cut/003.png", "color/000.png", "good/005.png"]
 VIEWPORT = {"width": 1400, "height": 1100}
 GIF_WIDTH = 900
 # Seconds each screenshot stays on screen.
-HOLD_S = {"start": 1.5, "result": 3.0, "tab": 3.0}
+HOLD_S = {"result": 3.0, "tab": 3.0}
 
 
 @contextmanager
@@ -83,7 +84,6 @@ def record(panel: str, frames: list[tuple[Image.Image, float]]) -> None:
         page = browser.new_page(viewport=VIEWPORT)
         page.goto(panel)
         page.get_by_text("Serving").wait_for(timeout=60_000)
-        frames.append((shot(page), HOLD_S["start"]))
         for name in SHOWN:
             page.locator("input[type=file]").set_input_files(
                 files=[
