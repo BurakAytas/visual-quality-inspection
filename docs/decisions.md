@@ -373,3 +373,36 @@ means: monitor the score distribution of good parts, and recalibrate the thresho
 change to optics or lighting. On `fabric` PatchCore blur drops AUROC to 0.549; the
 likely reason (not tested) is that blur removes the fine detail its few caught
 defects depend on.
+
+## Phase 5: export and CPU latency
+
+### D43. Each exported format gets its own threshold, from its own validation scores
+anomalib's exported graph includes the pre-processing, but with antialiasing switched off
+in the resize (`get_exportable_transform`; ONNX cannot export antialiased resizing). The
+training pipeline resizes with antialiasing, so an exported model gives slightly different
+raw scores for the same image, and a threshold from training would not fit it.
+INT8 quantisation shifts scores further. `scripts/export_model.py` therefore scores the
+good validation images with every format and applies the same threshold policy (D12),
+storing `<model>/<category>/<format>` in `results/thresholds.json`. The API (Phase 6)
+reads the threshold of the format it serves. anomalib's own 0.5 threshold is never used:
+normalisation and thresholding are off in the model (D14).
+
+### D44. How latency is measured
+CPU only, batch size 1, one image at a time, as on a line. The image is decoded before the
+timer starts (decoding depends on the file format and disk, not on the model); the timed
+call includes the model's own resize and normalisation. 10 untimed warm-up calls first,
+then every test image once; median and 95th percentile are reported, with the CPU model,
+core count, thread count and library versions in `export.json`. Formats: PyTorch FP32
+(baseline), ONNX Runtime FP32, OpenVINO FP32, FP16 and INT8 (post-training quantisation
+calibrated on the good-only validation loader). Category: `leather`, where PatchCore works
+well and which Phase 4's defect-type labels come from.
+
+### D45. Export details found in a CPU smoke run before any real run
+- The ONNX exporter in torch 2.14 needs `onnxscript`, which was missing from the `export`
+  extra; added.
+- The exporter stores weights in `model.onnx.data` next to `model.onnx`, so model size is
+  measured over the whole export folder.
+- During ONNX export, torch prints a `version_converter ... Assertion ... failed` traceback
+  while trying to convert the graph to another opset; the export continues with the
+  original opset and the exported model's scores match PyTorch's. It is noise, not a failure.
+- OpenVINO writes a compiled-model cache to `openvino_cache/`; it is git-ignored.
