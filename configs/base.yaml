@@ -18,7 +18,7 @@ evaluation:
   bootstrap_samples: 1000
   # Test-set miss rate is also reported at this false-alarm rate, to compare models.
   fixed_false_alarm_rate: 0.01
-  overlays_per_group: 8    # failure gallery: images per group (TP, FN, FP)
+  overlays_per_group: 3    # failure gallery: images per group (TP, FN, FP)
 
 robustness:
   # Test images are perturbed before resizing; the clean threshold is kept.

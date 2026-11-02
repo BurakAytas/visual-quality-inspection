@@ -656,9 +656,20 @@ tables use `width="stretch"`. Tests run the panel headless with `streamlit.testi
 test images through `POST /inspect` as the line simulator would, starts the panel and
 drives it with headless Chromium (Playwright 1.64.0, in the `demo` extra). Each step is a
 screenshot; Pillow joins them into `docs/demo.gif`. The three parts inspected on camera
-(`good/005`, `cut/003`, `color/000`) were picked by eye for marks visible at GIF size.
+(`cut/003`, `color/000`, `good/005`) were picked by eye for marks visible at GIF size; a
+NOK result comes first so the GIF opens on a heatmap, not on an empty upload form.
 `good/000` was not used as the good part because it is a false alarm; the review queue
-shows such parts instead. The first version took the screenshot as soon as the page was
+shows such parts instead. The script has no CI test: it needs the exported models, the
+MVTec data and a browser, none of which CI has; it is checked by looking at the GIF. The first version took the screenshot as soon as the page was
 idle and recorded the previous part's result: Streamlit shows the new upload before the
 new answer arrives. The script now waits until the file name appears twice, in the upload
 chip and in the image caption, which happens only once the new answer is drawn.
+
+### D59. The failure gallery keeps three overlays per group
+D19 saved eight overlays per group (TP, FN, FP) and category. Three show the pattern just
+as well and keep the repository and the README's links small, so `overlays_per_group` is
+now 3 and the committed galleries were cut to the first three of each group in the
+gallery's own ranking (`overlays.json`): the most confident catches, the lowest-scoring
+misses and the highest-scoring false alarms. Nothing was re-run. The two fabric examples
+in the README were ranked lower and were removed, so it now shows the top-ranked catch
+and miss instead.

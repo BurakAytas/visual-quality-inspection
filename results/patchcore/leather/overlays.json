@@ -15,31 +15,6 @@
     "score": 84.42559814453125
   },
   {
-    "group": "tp",
-    "file": "overlays/tp/test_glue_005.jpg",
-    "score": 84.01895141601562
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_glue_013.jpg",
-    "score": 80.6241455078125
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_glue_006.jpg",
-    "score": 77.20098876953125
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_cut_007.jpg",
-    "score": 76.93172454833984
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_glue_017.jpg",
-    "score": 76.014404296875
-  },
-  {
     "group": "fp",
     "file": "overlays/fp/test_good_000.jpg",
     "score": 30.27018165588379
@@ -53,20 +28,5 @@
     "group": "fp",
     "file": "overlays/fp/test_good_031.jpg",
     "score": 28.501731872558594
-  },
-  {
-    "group": "fp",
-    "file": "overlays/fp/test_good_030.jpg",
-    "score": 27.979703903198242
-  },
-  {
-    "group": "fp",
-    "file": "overlays/fp/test_good_028.jpg",
-    "score": 27.978254318237305
-  },
-  {
-    "group": "fp",
-    "file": "overlays/fp/test_good_029.jpg",
-    "score": 27.895347595214844
   }
 ]

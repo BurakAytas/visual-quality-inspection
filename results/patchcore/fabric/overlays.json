@@ -15,31 +15,6 @@
     "score": 46.47139358520508
   },
   {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_000_shift_1.jpg",
-    "score": 46.43384552001953
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_000_underexposed.jpg",
-    "score": 46.402320861816406
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_000_overexposed.jpg",
-    "score": 46.27891540527344
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_000_regular.jpg",
-    "score": 46.190025329589844
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_public_bad_007_shift_3.jpg",
-    "score": 45.513755798339844
-  },
-  {
     "group": "fn",
     "file": "overlays/fn/test_public_bad_010_underexposed.jpg",
     "score": 35.40009689331055
@@ -53,30 +28,5 @@
     "group": "fn",
     "file": "overlays/fn/test_public_bad_010_shift_2.jpg",
     "score": 36.16645050048828
-  },
-  {
-    "group": "fn",
-    "file": "overlays/fn/test_public_bad_010_shift_3.jpg",
-    "score": 36.38261413574219
-  },
-  {
-    "group": "fn",
-    "file": "overlays/fn/test_public_bad_010_overexposed.jpg",
-    "score": 36.542938232421875
-  },
-  {
-    "group": "fn",
-    "file": "overlays/fn/test_public_bad_004_underexposed.jpg",
-    "score": 36.72150421142578
-  },
-  {
-    "group": "fn",
-    "file": "overlays/fn/test_public_bad_010_shift_1.jpg",
-    "score": 36.744110107421875
-  },
-  {
-    "group": "fn",
-    "file": "overlays/fn/test_public_bad_004_shift_2.jpg",
-    "score": 37.1543083190918
   }
 ]

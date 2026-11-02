@@ -15,31 +15,6 @@
     "score": 68.72550201416016
   },
   {
-    "group": "tp",
-    "file": "overlays/tp/test_cut_006.jpg",
-    "score": 68.10646057128906
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_color_008.jpg",
-    "score": 67.67411041259766
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_cut_015.jpg",
-    "score": 67.3212661743164
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_hole_010.jpg",
-    "score": 66.26839447021484
-  },
-  {
-    "group": "tp",
-    "file": "overlays/tp/test_cut_002.jpg",
-    "score": 65.31014251708984
-  },
-  {
     "group": "fn",
     "file": "overlays/fn/test_metal_contamination_000.jpg",
     "score": 25.792064666748047

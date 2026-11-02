@@ -69,7 +69,7 @@ class EvaluationConfig:
 
     bootstrap_samples: int = 1000
     fixed_false_alarm_rate: float = 0.01
-    overlays_per_group: int = 8
+    overlays_per_group: int = 3
 
 
 @dataclass(frozen=True)

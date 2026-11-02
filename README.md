@@ -17,7 +17,7 @@ a decision log and an operator panel.
 On the harder MVTec AD 2 `fabric` the same method misses 78.9%<!-- claim: results/metrics.json#patchcore/fabric.image.miss_rate.value --> of defects: see
 [Key results](#key-results).
 
-<img src="docs/demo.gif" width="760" alt="Operator panel: a good part, a cut and a colour defect, then the review queue and the daily report">
+<img src="docs/demo.gif" width="760" alt="Operator panel: a cut, a colour defect and a good part, then the review queue and the daily report">
 
 *The operator panel, recorded by `scripts/make_demo_gif.py`: three parts inspected, then the
 review queue and the daily report of a replayed shift.*
@@ -54,13 +54,13 @@ tables with 95% bootstrap intervals, false-alarm rates and pixel AU-PRO:
 
 <table>
 <tr>
-<td><img src="results/patchcore/fabric/overlays/tp/test_public_bad_000_regular.jpg" width="260" alt="Caught defect"></td>
-<td><img src="results/patchcore/fabric/overlays/fn/test_public_bad_004_underexposed.jpg" width="260" alt="Missed defect"></td>
+<td><img src="results/patchcore/fabric/overlays/tp/test_public_bad_000_shift_2.jpg" width="260" alt="Caught defect"></td>
+<td><img src="results/patchcore/fabric/overlays/fn/test_public_bad_010_regular.jpg" width="260" alt="Missed defect"></td>
 <td><img src="results/patchcore/leather/overlays/fp/test_good_000.jpg" width="260" alt="False alarm"></td>
 </tr>
 <tr>
-<td><b>Caught</b> (fabric). Large defect area (green outline); the heatmap peaks at its edge.</td>
-<td><b>Missed</b> (fabric). A thin line that looks like the printed pattern; at 256 px it nearly disappears.</td>
+<td><b>Caught</b> (fabric). Large defect area (green outline); the heatmap is strongest at its upper edge.</td>
+<td><b>Missed</b> (fabric). A tiny defect (green dot) inside the printed pattern; the heatmap shows nothing there.</td>
 <td><b>False alarm</b> (leather). A good part with a bright patch near the border.</td>
 </tr>
 </table>
@@ -108,8 +108,8 @@ rejects 100.0%<!-- claim: results/robustness.json#patchcore/leather.blur.false_a
 parts and recalibrating the threshold after any optics or lighting change. EfficientAD is
 more fragile: brighter images drop its leather AUROC to 0.463<!-- claim: results/robustness.json#efficientad/leather.brightness_1.3.image_auroc.value -->.
 
-More: failure galleries in `results/<model>/<category>/overlays/` (true positives, misses,
-false alarms); decisions and negative results in [`docs/decisions.md`](docs/decisions.md).
+More: failure galleries in `results/<model>/<category>/overlays/` (per category the
+three clearest catches, worst misses and worst false alarms); decisions and negative results in [`docs/decisions.md`](docs/decisions.md).
 
 ## Deployment: export and CPU latency
 
